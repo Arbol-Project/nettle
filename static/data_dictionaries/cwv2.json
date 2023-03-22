@@ -1,0 +1,17 @@
+{
+    "0": {
+        "column name": "dt",
+        "plain text description": "date (utc) when measurements taken",
+        "unit of measurement": "yyyy-mm-dd",
+        "precision": "day",
+        "na value": "NA"
+    },
+    "1": {
+        "column name": "CWV",
+        "api name": "CWV",
+        "plain text description": "Composite weather variable used by the UK National Grid to estimate gas demand",
+        "unit of measurement": "dimensionless_unscaled",
+        "precision": "0.01",
+        "na value": ""
+    }
+}

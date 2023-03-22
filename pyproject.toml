@@ -1,0 +1,19 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "station-climate-etl-ipfs"
+version = "0.0.1"
+description = "A system which does something"
+readme = "README.md"
+requires-python = ">=3.8.3"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/Arbol-Project/station-climate-etl-ipfs"
+"Bug Tracker" = "https://github.com/Arbol-Project/station-climate-etl-ipfs/issues"
