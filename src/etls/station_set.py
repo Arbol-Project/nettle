@@ -9,15 +9,15 @@ import datetime
 import json
 import os
 import pandas as pd
-import conf.settings as settings
+from .conf import settings
 import time
-from etls.utils.log_info import LogInfo
-from etls.utils.ipfs_handler import IpfsHandler
-from etls.utils.file_handler import FileHandler
-from etls.utils.metadata_handler import MetadataHandler
-from etls.utils.date_handler import DateHandler
-from etls.utils.s3_handler import S3Handler
-from etls.utils.geo_json_handler import GeoJsonHandler
+from .utils.log_info import LogInfo
+from .utils.ipfs_handler import IpfsHandler
+from .utils.file_handler import FileHandler
+from .utils.metadata_handler import MetadataHandler
+from .utils.date_handler import DateHandler
+from .utils.s3_handler import S3Handler
+from .utils.geo_json_handler import GeoJsonHandler
 
 
 class StationSet(ABC):

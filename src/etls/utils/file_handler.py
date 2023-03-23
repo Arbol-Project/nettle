@@ -1,9 +1,8 @@
 import os
-import pathlib
 import glob
 import json
 import datetime
-import conf.settings as settings
+from ..conf import settings
 from .date_handler import DateHandler
 
 

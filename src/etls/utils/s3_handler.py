@@ -1,4 +1,4 @@
-import conf.settings as settings
+from ..conf import settings
 import pandas as pd
 
 
@@ -18,3 +18,6 @@ class S3Handler:
         except FileNotFoundError:
             # warning logged in StationSet get_historical_dataframe
             return None
+
+    def add_to_s3(self):
+        pass
