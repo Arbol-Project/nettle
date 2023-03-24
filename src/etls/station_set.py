@@ -78,7 +78,6 @@ class StationSet(ABC):
                                                     os.path.dirname(__file__)),
                                                 self.name(), custom_metadata_head_path)
         self.geo_json_handler = GeoJsonHandler(self.file_handler, self.log)
-        self.parser = StationSetParser()
         self.STATION_DICT = {}
         self.DATA_DICT = {}
 

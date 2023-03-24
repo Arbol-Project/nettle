@@ -1,0 +1,10 @@
+{
+    "verbose": false,
+    "custom_output_path": null,
+    "custom_head_metadata": null,
+    "custom_latest_hash": null,
+    "publish_to_ipns": null,
+    "rebuild": false,
+    "force_http": false,
+    "suppress_add": false
+}
