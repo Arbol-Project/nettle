@@ -4,7 +4,7 @@
 python -m build
 
 # Install
-pip install station_climate_etl_ipfs-0.0.1.tar.gz
+pip install dist/station-climate-etl-ipfs-0.0.1.tar.gz
 
 # Import
 import etls.station_set
