@@ -102,6 +102,11 @@ class MetadataHandler:
         return self._ipfs_handler.contents_from_hash(recursive_hash, path, as_json=True)
 
     def get_metadata_dicts(self):
+        # print("aqui")
+        # print(self.dict_path)
+        # print("aqui1")
+        # print(self.station_set_name)
+        # print("aqui2")
         # static data dictionary which gets added
         # to self.metadata in write_metadata()
         data_dict_path = os.path.join(

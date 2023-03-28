@@ -72,11 +72,12 @@ class StationSet(ABC):
                                         self.climate_measurement_span(),
                                         self.today_with_time,
                                         relative_path=self.name())
+
         self.metadata_handler = MetadataHandler(self.ipfs_handler, http_root,
                                                 self.log, self.file_handler,
-                                                os.path.dirname(
-                                                    os.path.dirname(__file__)),
+                                                self._correct_dict_path(),
                                                 self.name(), custom_metadata_head_path)
+        self.s3_handler = S3Handler(self.log)
         self.geo_json_handler = GeoJsonHandler(self.file_handler, self.log)
         self.STATION_DICT = {}
         self.DATA_DICT = {}
@@ -92,6 +93,14 @@ class StationSet(ABC):
 
     def __hash__(self):
         return hash(str(self))
+
+    def _correct_dict_path(self):
+        # Don't hardcode like this
+        # Check if name is in valid_source_keys in sources.py
+        if self.name() == 'bom2' or self.name() == 'cwv2':
+            return os.path.dirname(__file__)
+        else:
+            return os.getcwd()
 
     def rebuild_requested(self):
         '''
@@ -127,11 +136,10 @@ class StationSet(ABC):
         """
         whole_history_path = f'{self.name().lower()}.csv'
         specific_history_path = f'{self.name().lower()}/{station_id}.csv'
-
-        dataframe = S3Handler.read_csv_from_station(specific_history_path)
+        dataframe = self.s3_handler.read_csv_from_station(specific_history_path)
 
         if dataframe is None:
-            dataframe = S3Handler.read_csv_from_station(whole_history_path)
+            dataframe = self.s3_handler.read_csv_from_station(whole_history_path)
             print(
                 f"No historical data found for {station_id} specifically, using whole dataset df")
 

@@ -10,5 +10,5 @@ pip install dist/station-climate-etl-ipfs-0.0.1.tar.gz
 import etls.station_set
 
 # Development: How to run
-# From src folder:
+# From station-climate-etl-ipfs/src folder:
 python -m etls.generate

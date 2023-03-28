@@ -1,5 +1,6 @@
 import json
 import argparse
+from importlib.resources import open_text
 from .conf.logging import initialize_logging
 from .conf.sources import *
 
@@ -50,9 +51,20 @@ def generate(source_class):
 
 
 def initiliaze_configuration():
-    with open(CONF_FILE) as generate_json:
+    # with open(CONF_FILE) as generate_json:
+    # Deprecated since version 3.11
+    with open_text("etls.conf", "generate.json") as generate_json:
+    # use this if update python version
+    # with files("etls").joinpath("conf/generate.json").open('r', encoding='utf-8') as generate_json:
         # parsed_json = json.load(generate)
         return json.load(generate_json)
+
+
+def print_valid_source_arguments(valid_source_keys):
+    for ii, source in enumerate(sorted(valid_source_keys)):
+        print(source.ljust(50), end="")
+        if not ii % 3:
+            print()
 
 
 def parse_command_line(command=None):
@@ -67,6 +79,7 @@ def parse_command_line(command=None):
 
     if arguments.source is None:
         print("\nNo source specified in command. Use one of the following, or run './generate.py -h' for help.\n")
+        print_valid_source_arguments(valid_source_keys)
         print()
         exit()
 
