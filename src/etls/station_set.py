@@ -8,9 +8,12 @@ from abc import ABC, abstractmethod
 import datetime
 import json
 import os
+import sys
 import pandas as pd
 from .conf import settings
 import time
+from .generate import *
+from collections.abc import Iterator
 from .utils.log_info import LogInfo
 from .utils.ipfs_handler import IpfsHandler
 from .utils.file_handler import FileHandler
@@ -690,3 +693,14 @@ class StationSet(ABC):
         return self.ipfs_handler.add_directory_to_ipfs(path, key, self.publish_to_ipns,
                                                        suppress_adding_to_heads,
                                                        recursive)
+
+    @classmethod
+    def generate(cls, **kwargs):
+        generate_result(cls, **kwargs)
+
+    @classmethod
+    def get_subclasses(cls) -> Iterator:
+        """Create a generator with all the subclasses and sub-subclasses of a parent class"""
+        for subclass in cls.__subclasses__():
+            yield from subclass.get_subclasses()
+            yield subclass

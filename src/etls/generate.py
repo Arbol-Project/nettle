@@ -1,8 +1,9 @@
-import json
+# import json
 import argparse
-from importlib.resources import open_text
+# from importlib.resources import open_text
 from .conf.logging import initialize_logging
-from .conf.sources import *
+# from .conf.sources import *
+# from .station_set import StationSet
 
 LOG_PATH = "/var/log/arbol/parsing-info.log"
 DEBUG_LOG_PATH = "/var/log/arbol/parsing-debug.log"
@@ -35,8 +36,35 @@ def verify(logging, perform_validation):
         pass
 
 
-def generate(source_class):
-    config = initiliaze_configuration()
+def get_set_manager_from_name(name):
+    pass
+    # from .station_set import StationSet
+    # print([cls.__name__ for cls in StationSet.__subclasses__()])
+    #
+    # sub_classes = StationSet.__subclasses__()
+    # sub_classes_names = [sub_class.name() for sub_class in sub_classes]
+    #
+    # print('opaaa')
+    # print(sub_classes_names)
+    # print(sub_classes)
+    #
+    # if name is None:
+    #     print("\nNo source specified in command. Use one of the following, or run './generate.py -h' for help.\n")
+    #     print(*sub_classes_names)
+    #     print()
+    #     exit()
+    #
+    # if name not in sub_classes_names:
+    #     raise ValueError(f"{name} not a valid source key")
+    #
+    # for source in sub_classes:
+    #     if source.name() == name:
+    #         return source
+    # print(f"failed to set manager from name {name}")
+
+
+def generate_result(source_class, **kwargs):
+    config = initialize_configuration(kwargs)
     logging = initialize_logging(LOG_PATH, DEBUG_LOG_PATH, config['verbose'])
     source_instance = source_class(
         log=logging.log, custom_output_path=config['custom_output_path'],
@@ -50,49 +78,50 @@ def generate(source_class):
     verify(logging, perform_validation)
 
 
-def initiliaze_configuration():
-    # with open(CONF_FILE) as generate_json:
-    # Deprecated since version 3.11
-    with open_text("etls.conf", "generate.json") as generate_json:
-    # use this if update python version
-    # with files("etls").joinpath("conf/generate.json").open('r', encoding='utf-8') as generate_json:
-        # parsed_json = json.load(generate)
-        return json.load(generate_json)
+def initialize_configuration(kwargs):
+    return {
+        "verbose": kwargs.get('verbose') or False,
+        "custom_output_path": kwargs.get('custom_output_path'),
+        "custom_head_metadata": kwargs.get('custom_head_metadata'),
+        "custom_latest_hash": kwargs.get('custom_latest_hash'),
+        "publish_to_ipns": kwargs.get('publish_to_ipns'),
+        "rebuild": kwargs.get('rebuild') or False,
+        "force_http": kwargs.get('force_http') or False,
+        "suppress_add": kwargs.get('suppress_add') or False
+    }
+    # # Deprecated since version 3.11
+    # with open_text("etls.conf", "generate.json") as generate_json:
+    # # use this if update python version
+    # # with files("etls").joinpath("conf/generate.json").open('r', encoding='utf-8') as generate_json:
+    #     # parsed_json = json.load(generate)
+    #     return json.load(generate_json)
 
 
-def print_valid_source_arguments(valid_source_keys):
-    for ii, source in enumerate(sorted(valid_source_keys)):
-        print(source.ljust(50), end="")
-        if not ii % 3:
-            print()
+# def print_valid_source_arguments(valid_source_keys):
+#     for ii, source in enumerate(sorted(valid_source_keys)):
+#         print(source.ljust(50), end="")
+#         if not ii % 3:
+#             print()
 
 
 def parse_command_line(command=None):
-    valid_source_keys = [s.name() for s in SOURCES]
+    # valid_source_keys = [s.name() for s in SOURCES]
     parser = argparse.ArgumentParser(
         description='''This utility parses climate data into Arbol's gzipped CSV format, using a merkledag node on IPFS to store
                 the parsed data, and then verifies the parsed data before completing. It can retrieve original published data by 
                 checking remote locations for updates and can be set to run at a specified interval as a daemon.''',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("source", nargs="?", default=None, help="any of {}".format(valid_source_keys))
+    # parser.add_argument("source", nargs="?", default=None, help="any of {}".format(valid_source_keys))
+    parser.add_argument("source", nargs="?", default=None)
     arguments = parser.parse_args(command)
-
-    if arguments.source is None:
-        print("\nNo source specified in command. Use one of the following, or run './generate.py -h' for help.\n")
-        print_valid_source_arguments(valid_source_keys)
-        print()
-        exit()
-
-    if arguments.source not in valid_source_keys:
-        raise ValueError(f"{arguments.source} not a valid source key")
-
     source_class = get_set_manager_from_name(arguments.source)
+
     return source_class
 
 
 def main(command=None):
     source_class = parse_command_line(command)
-    generate(source_class)
+    generate_result(source_class)
 
 
 if __name__ == "__main__":
