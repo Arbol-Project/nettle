@@ -100,10 +100,12 @@ class StationSet(ABC):
     def _correct_dict_path(self):
         # Don't hardcode like this
         # Check if name is in valid_source_keys in sources.py
-        if self.name() == 'bom2' or self.name() == 'cwv2':
-            return os.path.dirname(__file__)
-        else:
-            return os.getcwd()
+        # if self.name() == 'bom2' or self.name() == 'cwv2':
+        #     return os.path.dirname(__file__)
+        # else:
+        #     return os.getcwd()
+
+        return os.getcwd()
 
     def rebuild_requested(self):
         '''
