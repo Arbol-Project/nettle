@@ -1,8 +1,14 @@
 [build-system]
-requires = ["setuptools"]
+requires = [
+    "setuptools>=45",
+    "wheel",
+    "setuptools_scm>=6.2"
+]
 build-backend = "setuptools.build_meta"
-#requires = ["hatchling"]
-#build-backend = "hatchling.build"
+
+[project]
+name = "station_etl_tools"
+version = "0.0.1"
 
 #[project]
 ##name = "station-climate-etl-ipfs"

@@ -8,7 +8,6 @@ from abc import ABC, abstractmethod
 import datetime
 import json
 import os
-import sys
 import pandas as pd
 from .conf import settings
 import time
