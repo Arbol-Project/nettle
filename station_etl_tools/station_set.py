@@ -9,9 +9,8 @@ import datetime
 import json
 import os
 import pandas as pd
-from .conf import settings
+from .utils import settings
 import time
-from .generate import *
 from collections.abc import Iterator
 from .utils.log_info import LogInfo
 from .utils.ipfs_handler import IpfsHandler
@@ -694,10 +693,6 @@ class StationSet(ABC):
         return self.ipfs_handler.add_directory_to_ipfs(path, key, self.publish_to_ipns,
                                                        suppress_adding_to_heads,
                                                        recursive)
-
-    @classmethod
-    def generate(cls, **kwargs):
-        generate_result(cls, **kwargs)
 
     @classmethod
     def get_subclasses(cls) -> Iterator:

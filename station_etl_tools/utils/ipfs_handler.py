@@ -3,7 +3,7 @@ import gzip
 import ipfshttpclient
 import json
 import os
-from ..conf import settings
+from . import settings
 import sys
 import urllib
 from .date_handler import DateHandler

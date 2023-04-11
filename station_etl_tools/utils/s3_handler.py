@@ -1,4 +1,4 @@
-from ..conf import settings
+from . import settings
 import pandas as pd
 
 

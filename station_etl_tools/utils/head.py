@@ -1,7 +1,7 @@
 import os
 import json
 import urllib
-from ..conf import settings
+from . import settings
 
 
 class Head:

@@ -2,7 +2,7 @@ import os
 import glob
 import json
 import datetime
-from ..conf import settings
+from . import settings
 from .date_handler import DateHandler
 
 

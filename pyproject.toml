@@ -9,36 +9,32 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "station_etl_tools"
 version = "0.0.1"
+authors = [
+    { name = "Alisson Pinto", email = "alisson.pinto@clevertech.biz" },
+    { name = "Kiran Morrison", email = "kiran@arbol.io" }
+]
 
-#[project]
-##name = "station-climate-etl-ipfs"
-#name = "example_package"
-#version = "0.0.1"
-#description = "A system which does something"
-#readme = "README.md"
-#requires-python = ">=3.8.3"
-#classifiers = [
-#    "Programming Language :: Python :: 3",
-#    "License :: OSI Approved :: MIT License",
-#    "Operating System :: OS Independent",
-#]
-#dependencies = [
-#  "click>=8.0.3",
-#  "hatchling>=1.11.0",
-#  "httpx>=0.22.0",
-#  "hyperlink>=21.0.0",
-#  "keyring>=23.5.0",
-#  "packaging>=21.3",
-#  "pexpect~=4.8",
-#  "platformdirs>=2.5.0",
-#  "pyperclip>=1.8.2",
-#  "rich>=11.2.0",
-#  "shellingham>=1.4.0",
-#  "tomli-w>=1.0",
-#  "tomlkit>=0.11.1",
-#  "userpath~=1.7",
-#  "virtualenv>=20.16.2",
-#]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Atmospheric Science"
+]
+
+[tool.setuptools_scm]
+version_scheme = "post-release"
+local_scheme = "no-local-version"
+write_to = "station_etl_tools/_version.py"
+
+[project.urls]
+Homepage = "https://arbol.io/"
+
+# CHECK THIS LATER
 
 #[project.urls]
 #"Homepage" = "https://github.com/Arbol-Project/station-climate-etl-ipfs"
