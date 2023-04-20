@@ -7,23 +7,50 @@ class GeoJsonHandler:
         self.file_handler = file_handler
         self.log = log
 
-    def write_geojson_to_file_with_geometry_info(self, geojson):
-        # write out to file with geometry info
-        path = os.path.join(self.file_handler.output_path(),
-                            MetadataHandler.STATION_METADATA_FILE_NAME.replace('json', 'geojson'))
-        with open(path, 'w', encoding='utf-8') as fp:
-            json.dump(geojson, fp, sort_keys=False,
-                      ensure_ascii=False, indent=4)
-        self.log.info("wrote geojson metadata to {}".format(path))
+    def write_geojson_to_file_with_geometry_info(self, geojson, **kwargs):
+        if 'store' not in kwargs:
+            self.log.error('Store not setted')
+            raise 'Store not setted'
 
-    def write_geojson_to_file_without_geometry_info(self, geojson):
-        # write out to file without geometry info (save space)
-        path = os.path.join(self.file_handler.output_path(),
-                            MetadataHandler.STATION_METADATA_FILE_NAME)
-        with open(path, 'w', encoding='utf-8') as fp:
-            json.dump(geojson, fp, sort_keys=False,
-                      ensure_ascii=False, indent=4)
-        self.log.info("wrote metadata to {}".format(path))
+        store = kwargs['store']
+        filesystem = store.fs()
+        outpath = store.file_outpath(
+            MetadataHandler.STATION_METADATA_FILE_NAME.replace('json', 'geojson'))
+
+        try:
+            with filesystem.open(outpath, 'w', encoding='utf-8') as fp:
+                json.dump(geojson, fp, sort_keys=False,
+                          ensure_ascii=False, indent=4)
+        except IOError as e:
+            self.log.error("I/O error({0}): {1}".format(e.errno, e.strerror))
+            raise e
+        except Exception as e:
+            self.log.error("Unexpected error writing station file")
+            raise e
+
+        self.log.info("wrote geojson metadata to {}".format(outpath))
+
+    def write_geojson_to_file_without_geometry_info(self, geojson, **kwargs):
+        if 'store' not in kwargs:
+            self.log.error('Store not setted')
+            raise 'Store not setted'
+
+        store = kwargs['store']
+        filesystem = store.fs()
+        outpath = store.file_outpath(MetadataHandler.STATION_METADATA_FILE_NAME)
+
+        try:
+            with filesystem.open(outpath, 'w', encoding='utf-8') as fp:
+                json.dump(geojson, fp, sort_keys=False,
+                          ensure_ascii=False, indent=4)
+        except IOError as e:
+            self.log.error("I/O error({0}): {1}".format(e.errno, e.strerror))
+            raise e
+        except Exception as e:
+            self.log.error("Unexpected error writing station file")
+            raise e
+
+        self.log.info("wrote metadata to {}".format(outpath))
 
     def remove_geometry_from_geojson(self, geojson):
         # remove geometry to save space
