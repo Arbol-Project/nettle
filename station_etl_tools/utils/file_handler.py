@@ -64,8 +64,8 @@ class FileHandler:
 
     @staticmethod
     def load_dict(path):
-        with open(path) as f:
-            return json.load(f, encoding='utf-8')
+        with open(path, encoding='utf-8') as f:
+            return json.load(f)
 
     def get_folder_path_from_date(self, date, omit_root=False):
         '''
