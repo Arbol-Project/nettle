@@ -3,12 +3,9 @@ from __future__ import annotations
 
 import os
 import s3fs
-import xarray as xr
 # import ipldstore
-import pathlib
+# import pathlib
 import fsspec
-import collections
-# from .. import dataset_manager
 from station_etl_tools.station_set import StationSet as dataset_manager
 from abc import abstractmethod, ABC
 

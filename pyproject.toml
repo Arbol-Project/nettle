@@ -13,6 +13,8 @@ authors = [
     { name = "Alisson Pinto", email = "alisson.pinto@clevertech.biz" },
     { name = "Kiran Morrison", email = "kiran@arbol.io" }
 ]
+keywords = ['Climate', 'ETL', 'IPFS']
+dynamic = ['readme', 'description']
 
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -25,6 +27,9 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Topic :: Scientific/Engineering :: Atmospheric Science"
 ]
+
+[tool.setuptools]
+packages=['station_etl_tools']
 
 [tool.setuptools_scm]
 version_scheme = "post-release"
