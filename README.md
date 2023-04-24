@@ -2,6 +2,7 @@
 Station etl tools is...
 
 # How to generate new package
+pip install pip==23.1.1
 pip install -r requirements.txt
 python -m build
 

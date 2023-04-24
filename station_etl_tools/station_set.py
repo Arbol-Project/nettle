@@ -20,6 +20,8 @@ from .utils.date_handler import DateHandler
 from .utils.s3_handler import S3Handler
 from .utils.geo_json_handler import GeoJsonHandler
 
+from .utils.store import Local
+
 
 class StationSet(ABC):
     '''
@@ -390,7 +392,15 @@ class StationSet(ABC):
         filesystem = kwargs['store'].fs()
         outpath = kwargs['store'].file_outpath(file_name)
 
+        local_store = Local(dataset_manager=self)
+        local_filesystem = local_store.fs()
+        local_outpath = local_store.file_outpath(file_name)
+
         try:
+            # Local
+            with local_filesystem.open(local_outpath, 'w') as f:
+                station_df.to_csv(f, index=False)
+            # S3, IPFS or other new store
             with filesystem.open(outpath, 'w') as f:
                 station_df.to_csv(f, index=False)
         except IOError as e:
@@ -425,7 +435,15 @@ class StationSet(ABC):
         filesystem = store.fs()
         outpath = store.file_outpath(MetadataHandler.METADATA_FILE_NAME)
 
+        local_store = Local(dataset_manager=self)
+        local_filesystem = local_store.fs()
+        local_outpath = local_store.file_outpath(MetadataHandler.METADATA_FILE_NAME)
+
         try:
+            # Local
+            with local_filesystem.open(local_outpath, 'w') as fp:
+                json.dump(metadata_formatted, fp, sort_keys=False, indent=4)
+            # S3, IPFS or other new Store
             with filesystem.open(outpath, 'w') as fp:
                 json.dump(metadata_formatted, fp, sort_keys=False, indent=4)
         except IOError as e:
@@ -468,12 +486,12 @@ class StationSet(ABC):
 
         self.geo_json_handler.append_features(geojson, old_stations, old_hash,
                                               self.STATION_DICT.items())
-        self.geo_json_handler.write_geojson_to_file_with_geometry_info(geojson, **kwargs)
+        self.geo_json_handler.write_geojson_to_file_with_geometry_info(geojson, self, **kwargs)
         self.geo_json_handler.remove_geometry_from_geojson(geojson)
         self.geo_json_handler.append_stations_not_in_new_update_to_metadata(
             old_station_metadata, old_stations, geojson)
         self.geo_json_handler.write_geojson_to_file_without_geometry_info(
-            geojson, **kwargs)
+            geojson, self, **kwargs)
 
     @staticmethod
     def _check_prepared_initial_data(prepared_initial_data):

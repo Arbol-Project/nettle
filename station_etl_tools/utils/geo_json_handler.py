@@ -1,13 +1,14 @@
 import json
 import os
 from .metadata_handler import MetadataHandler
+from .store import Local
 
 class GeoJsonHandler:
     def __init__(self, file_handler, log):
         self.file_handler = file_handler
         self.log = log
 
-    def write_geojson_to_file_with_geometry_info(self, geojson, **kwargs):
+    def write_geojson_to_file_with_geometry_info(self, geojson, data_manager, **kwargs):
         if 'store' not in kwargs:
             self.log.error('Store not setted')
             raise 'Store not setted'
@@ -17,7 +18,16 @@ class GeoJsonHandler:
         outpath = store.file_outpath(
             MetadataHandler.STATION_METADATA_FILE_NAME.replace('json', 'geojson'))
 
+        local_store = Local(dataset_manager=data_manager)
+        local_filesystem = local_store.fs()
+        local_outpath = local_store.file_outpath(
+            MetadataHandler.STATION_METADATA_FILE_NAME.replace('json', 'geojson'))
+
         try:
+            # Local
+            with local_filesystem.open(local_outpath, 'w', encoding='utf-8') as fp:
+                json.dump(geojson, fp, sort_keys=False,
+                          ensure_ascii=False, indent=4)
             with filesystem.open(outpath, 'w', encoding='utf-8') as fp:
                 json.dump(geojson, fp, sort_keys=False,
                           ensure_ascii=False, indent=4)
@@ -30,7 +40,7 @@ class GeoJsonHandler:
 
         self.log.info("wrote geojson metadata to {}".format(outpath))
 
-    def write_geojson_to_file_without_geometry_info(self, geojson, **kwargs):
+    def write_geojson_to_file_without_geometry_info(self, geojson, data_manager, **kwargs):
         if 'store' not in kwargs:
             self.log.error('Store not setted')
             raise 'Store not setted'
@@ -39,7 +49,16 @@ class GeoJsonHandler:
         filesystem = store.fs()
         outpath = store.file_outpath(MetadataHandler.STATION_METADATA_FILE_NAME)
 
+        local_store = Local(dataset_manager=data_manager)
+        local_filesystem = local_store.fs()
+        local_outpath = local_store.file_outpath(
+            MetadataHandler.STATION_METADATA_FILE_NAME)
+
         try:
+            # Local
+            with local_filesystem.open(local_outpath, 'w', encoding='utf-8') as fp:
+                json.dump(geojson, fp, sort_keys=False,
+                          ensure_ascii=False, indent=4)
             with filesystem.open(outpath, 'w', encoding='utf-8') as fp:
                 json.dump(geojson, fp, sort_keys=False,
                           ensure_ascii=False, indent=4)

@@ -6,14 +6,13 @@ import s3fs
 # import ipldstore
 # import pathlib
 import fsspec
-from station_etl_tools.station_set import StationSet as dataset_manager
 from abc import abstractmethod, ABC
 
 
 class StoreInterface(ABC):
 
-    def __init__(self, dm: dataset_manager):
-        self.dm = dm
+    def __init__(self, dataset_manager):
+        self.dm = dataset_manager
 
     # @abstractmethod
     # def mapper(self, **kwargs: dict) -> collections.abc.MutableMapping:
@@ -32,8 +31,8 @@ class StoreInterface(ABC):
 
 class S3(StoreInterface):
 
-    def __init__(self, dm: dataset_manager, bucket: str):
-        super().__init__(dm)
+    def __init__(self, dataset_manager, bucket: str):
+        super().__init__(dataset_manager)
         if not bucket:
             raise ValueError("Must provide bucket name if parsing to S3")
         self.bucket = bucket
