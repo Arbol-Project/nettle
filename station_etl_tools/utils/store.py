@@ -7,6 +7,7 @@ import s3fs
 # import pathlib
 import fsspec
 from abc import abstractmethod, ABC
+from . import settings
 
 
 class StoreInterface(ABC):
@@ -41,8 +42,8 @@ class S3(StoreInterface):
         if refresh or not hasattr(self, "_fs"):
             try:
                 self._fs = s3fs.S3FileSystem(
-                    key=os.environ["AWS_ACCESS_KEY_ID"],
-                    secret=os.environ["AWS_SECRET_ACCESS_KEY"]
+                    key=settings.AWS_ACCESS_KEY,
+                    secret=settings.AWS_SECRET_KEY
                     )
             except KeyError:  # KeyError indicates credentials have not been manually specified
                 self._fs = s3fs.S3FileSystem()  # credentials automatically supplied from ~/.aws/credentials
