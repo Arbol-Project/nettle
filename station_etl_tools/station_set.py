@@ -393,13 +393,14 @@ class StationSet(ABC):
         outpath = kwargs['store'].file_outpath(file_name)
 
         local_store = Local(dataset_manager=self)
-        local_filesystem = local_store.fs()
+        # local_filesystem = local_store.fs()
         local_outpath = local_store.file_outpath(file_name)
 
+        local_store.write(local_outpath, station_df)
         try:
             # Local
-            with local_filesystem.open(local_outpath, 'w') as f:
-                station_df.to_csv(f, index=False)
+            # with local_filesystem.open(local_outpath, 'w') as f:
+            #     station_df.to_csv(f, index=False)
             # S3, IPFS or other new store
             with filesystem.open(outpath, 'w') as f:
                 station_df.to_csv(f, index=False)
@@ -439,10 +440,11 @@ class StationSet(ABC):
         local_filesystem = local_store.fs()
         local_outpath = local_store.file_outpath(MetadataHandler.METADATA_FILE_NAME)
 
+        local_store.write(local_outpath, metadata_formatted)
         try:
             # Local
-            with local_filesystem.open(local_outpath, 'w') as fp:
-                json.dump(metadata_formatted, fp, sort_keys=False, indent=4)
+            # with local_filesystem.open(local_outpath, 'w') as fp:
+            #     json.dump(metadata_formatted, fp, sort_keys=False, indent=4)
             # S3, IPFS or other new Store
             with filesystem.open(outpath, 'w') as fp:
                 json.dump(metadata_formatted, fp, sort_keys=False, indent=4)

@@ -2,12 +2,14 @@
 from __future__ import annotations
 
 import os
+import json
 import s3fs
 # import ipldstore
 # import pathlib
 import fsspec
 from abc import abstractmethod, ABC
 from . import settings
+import pandas as pd
 
 
 class StoreInterface(ABC):
@@ -28,6 +30,14 @@ class StoreInterface(ABC):
     #         return xr.open_zarr(self.mapper(**kwargs))
     #     else:
     #         return None
+
+    @abstractmethod
+    def write(self, filepath: str, content, encoding, **kwargs):
+        pass
+
+    @abstractmethod
+    def read(self, **kwargs):
+        pass
 
 
 class S3(StoreInterface):
@@ -71,6 +81,28 @@ class S3(StoreInterface):
     def has_existing_file(self, file_name) -> bool:
         return self.fs().exists(self.file_outpath(file_name))
 
+    def write(self, filepath: str, content, encoding=None, **kwargs):
+        filesystem = self.fs()
+
+        try:
+            with filesystem.open(filepath, 'w', encoding=encoding) as f:
+                if isinstance(content, dict):
+                    json.dump(content, f, sort_keys=False, ensure_ascii=False, indent=4)
+                elif isinstance(content, pd.DataFrame):
+                    content.to_csv(f, index=False)
+                else:
+                    # make this a better error
+                    raise Exception("Content file not identified")
+        except IOError as e:
+            self.dm.log.error("I/O error({0}): {1}".format(e.errno, e.strerror))
+            raise e
+        except Exception as e:
+            self.dm.log.error("Unexpected error writing station file")
+            raise e
+
+    def read(self):
+        pass
+
 
 class Local(StoreInterface):
     def fs(self, refresh: bool = False) -> fsspec.implementations.local.LocalFileSystem:
@@ -96,3 +128,25 @@ class Local(StoreInterface):
 
     def has_existing_file(self, file_name) -> bool:
         return os.path.exists(self.file_outpath(file_name))
+
+    def write(self, filepath: str, content, encoding=None, **kwargs):
+        filesystem = self.fs()
+
+        try:
+            with filesystem.open(filepath, 'w', encoding=encoding) as f:
+                if isinstance(content, dict):
+                    json.dump(content, f, sort_keys=False, ensure_ascii=False, indent=4)
+                elif isinstance(content, pd.DataFrame):
+                    content.to_csv(f, index=False)
+                else:
+                    # make this a better error
+                    raise Exception("Content file not identified")
+        except IOError as e:
+            self.dm.log.error("I/O error({0}): {1}".format(e.errno, e.strerror))
+            raise e
+        except Exception as e:
+            self.dm.log.error("Unexpected error writing station file")
+            raise e
+
+    def read(self):
+        pass

@@ -19,15 +19,18 @@ class GeoJsonHandler:
             MetadataHandler.STATION_METADATA_FILE_NAME.replace('json', 'geojson'))
 
         local_store = Local(dataset_manager=data_manager)
-        local_filesystem = local_store.fs()
+        # local_filesystem = local_store.fs()
         local_outpath = local_store.file_outpath(
             MetadataHandler.STATION_METADATA_FILE_NAME.replace('json', 'geojson'))
 
+        local_store.write(local_outpath, geojson, encoding='utf-8')
         try:
             # Local
-            with local_filesystem.open(local_outpath, 'w', encoding='utf-8') as fp:
-                json.dump(geojson, fp, sort_keys=False,
-                          ensure_ascii=False, indent=4)
+            # with local_filesystem.open(local_outpath, 'w', encoding='utf-8') as fp:
+            #     json.dump(geojson, fp, sort_keys=False,
+            #               ensure_ascii=False, indent=4)
+
+
             with filesystem.open(outpath, 'w', encoding='utf-8') as fp:
                 json.dump(geojson, fp, sort_keys=False,
                           ensure_ascii=False, indent=4)
@@ -54,11 +57,12 @@ class GeoJsonHandler:
         local_outpath = local_store.file_outpath(
             MetadataHandler.STATION_METADATA_FILE_NAME)
 
+        local_store.write(local_outpath, geojson, encoding='utf-8')
         try:
             # Local
-            with local_filesystem.open(local_outpath, 'w', encoding='utf-8') as fp:
-                json.dump(geojson, fp, sort_keys=False,
-                          ensure_ascii=False, indent=4)
+            # with local_filesystem.open(local_outpath, 'w', encoding='utf-8') as fp:
+            #     json.dump(geojson, fp, sort_keys=False,
+            #               ensure_ascii=False, indent=4)
             with filesystem.open(outpath, 'w', encoding='utf-8') as fp:
                 json.dump(geojson, fp, sort_keys=False,
                           ensure_ascii=False, indent=4)
