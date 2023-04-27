@@ -142,6 +142,8 @@ class StationSet(ABC):
         """
         whole_history_path = f'{self.name().lower()}.csv'
         specific_history_path = f'{self.name().lower()}/{station_id}.csv'
+
+        store = S3(dataset_manager=self, bucket=settings.S3_STATION_BUCKET)
         dataframe = self.s3_handler.read_csv_from_station(specific_history_path)
 
         if dataframe is None:
@@ -389,27 +391,15 @@ class StationSet(ABC):
             raise 'Store not setted'
 
         file_name = f"{station_id}.csv"
-        filesystem = kwargs['store'].fs()
-        outpath = kwargs['store'].file_outpath(file_name)
 
         local_store = Local(dataset_manager=self)
-        # local_filesystem = local_store.fs()
+        store = kwargs['store']
+
         local_outpath = local_store.file_outpath(file_name)
+        outpath = kwargs['store'].file_outpath(file_name)
 
         local_store.write(local_outpath, station_df)
-        try:
-            # Local
-            # with local_filesystem.open(local_outpath, 'w') as f:
-            #     station_df.to_csv(f, index=False)
-            # S3, IPFS or other new store
-            with filesystem.open(outpath, 'w') as f:
-                station_df.to_csv(f, index=False)
-        except IOError as e:
-            self.log.error("I/O error({0}): {1}".format(e.errno, e.strerror))
-            raise e
-        except Exception as e:
-            self.log.error("Unexpected error writing station file")
-            raise e
+        store.write(outpath, station_df)
 
         self.log.info("wrote station file to {}".format(outpath))
 
@@ -433,27 +423,13 @@ class StationSet(ABC):
             metadata_formatted["final through"] = self.metadata["final through"].isoformat(
             )
 
-        filesystem = store.fs()
+        local_store = Local(dataset_manager=self)
+
+        local_outpath = local_store.file_outpath(MetadataHandler.METADATA_FILE_NAME)
         outpath = store.file_outpath(MetadataHandler.METADATA_FILE_NAME)
 
-        local_store = Local(dataset_manager=self)
-        local_filesystem = local_store.fs()
-        local_outpath = local_store.file_outpath(MetadataHandler.METADATA_FILE_NAME)
-
         local_store.write(local_outpath, metadata_formatted)
-        try:
-            # Local
-            # with local_filesystem.open(local_outpath, 'w') as fp:
-            #     json.dump(metadata_formatted, fp, sort_keys=False, indent=4)
-            # S3, IPFS or other new Store
-            with filesystem.open(outpath, 'w') as fp:
-                json.dump(metadata_formatted, fp, sort_keys=False, indent=4)
-        except IOError as e:
-            self.log.error("I/O error({0}): {1}".format(e.errno, e.strerror))
-            raise e
-        except Exception as e:
-            self.log.error("Unexpected error writing station file")
-            raise e
+        store.write(outpath, metadata_formatted)
 
         self.log.info("wrote metadata to {}".format(outpath))
 

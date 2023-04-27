@@ -5,7 +5,7 @@ import os
 import json
 import s3fs
 # import ipldstore
-# import pathlib
+import pathlib
 import fsspec
 from abc import abstractmethod, ABC
 from . import settings
@@ -100,8 +100,20 @@ class S3(StoreInterface):
             self.dm.log.error("Unexpected error writing station file")
             raise e
 
-    def read(self):
-        pass
+    def read(self, filepath: str, file_type=None):
+        if file_type is None:
+            file_type = filepath.split(".")[-1]
+
+        try:
+            if file_type == 'csv':
+                csv = pd.read_csv(filepath)
+                return csv
+            else:
+                # ToDo: make a better error
+                raise Exception('Could not identify file type')
+        except FileNotFoundError:
+            # warning logged in StationSet get_historical_dataframe
+            return None
 
 
 class Local(StoreInterface):

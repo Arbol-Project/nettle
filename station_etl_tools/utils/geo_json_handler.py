@@ -13,33 +13,16 @@ class GeoJsonHandler:
             self.log.error('Store not setted')
             raise 'Store not setted'
 
+        local_store = Local(dataset_manager=data_manager)
         store = kwargs['store']
-        filesystem = store.fs()
+
+        local_outpath = local_store.file_outpath(
+            MetadataHandler.STATION_METADATA_FILE_NAME.replace('json', 'geojson'))
         outpath = store.file_outpath(
             MetadataHandler.STATION_METADATA_FILE_NAME.replace('json', 'geojson'))
 
-        local_store = Local(dataset_manager=data_manager)
-        # local_filesystem = local_store.fs()
-        local_outpath = local_store.file_outpath(
-            MetadataHandler.STATION_METADATA_FILE_NAME.replace('json', 'geojson'))
-
         local_store.write(local_outpath, geojson, encoding='utf-8')
-        try:
-            # Local
-            # with local_filesystem.open(local_outpath, 'w', encoding='utf-8') as fp:
-            #     json.dump(geojson, fp, sort_keys=False,
-            #               ensure_ascii=False, indent=4)
-
-
-            with filesystem.open(outpath, 'w', encoding='utf-8') as fp:
-                json.dump(geojson, fp, sort_keys=False,
-                          ensure_ascii=False, indent=4)
-        except IOError as e:
-            self.log.error("I/O error({0}): {1}".format(e.errno, e.strerror))
-            raise e
-        except Exception as e:
-            self.log.error("Unexpected error writing station file")
-            raise e
+        store.write(outpath, geojson, encoding='utf-8')
 
         self.log.info("wrote geojson metadata to {}".format(outpath))
 
@@ -48,30 +31,15 @@ class GeoJsonHandler:
             self.log.error('Store not setted')
             raise 'Store not setted'
 
-        store = kwargs['store']
-        filesystem = store.fs()
-        outpath = store.file_outpath(MetadataHandler.STATION_METADATA_FILE_NAME)
-
         local_store = Local(dataset_manager=data_manager)
-        local_filesystem = local_store.fs()
+        store = kwargs['store']
+
         local_outpath = local_store.file_outpath(
             MetadataHandler.STATION_METADATA_FILE_NAME)
+        outpath = store.file_outpath(MetadataHandler.STATION_METADATA_FILE_NAME)
 
         local_store.write(local_outpath, geojson, encoding='utf-8')
-        try:
-            # Local
-            # with local_filesystem.open(local_outpath, 'w', encoding='utf-8') as fp:
-            #     json.dump(geojson, fp, sort_keys=False,
-            #               ensure_ascii=False, indent=4)
-            with filesystem.open(outpath, 'w', encoding='utf-8') as fp:
-                json.dump(geojson, fp, sort_keys=False,
-                          ensure_ascii=False, indent=4)
-        except IOError as e:
-            self.log.error("I/O error({0}): {1}".format(e.errno, e.strerror))
-            raise e
-        except Exception as e:
-            self.log.error("Unexpected error writing station file")
-            raise e
+        store.write(outpath, geojson, encoding='utf-8')
 
         self.log.info("wrote metadata to {}".format(outpath))
 
