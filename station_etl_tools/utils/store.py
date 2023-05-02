@@ -1,0 +1,164 @@
+# This is necessary for referencing types that aren't fully imported yet. See https://peps.python.org/pep-0563/
+from __future__ import annotations
+
+import os
+import json
+import s3fs
+# import ipldstore
+import pathlib
+import fsspec
+from abc import abstractmethod, ABC
+from . import settings
+import pandas as pd
+
+
+class StoreInterface(ABC):
+
+    def __init__(self, dataset_manager):
+        self.dm = dataset_manager
+
+    # @abstractmethod
+    # def mapper(self, **kwargs: dict) -> collections.abc.MutableMapping:
+    #     pass
+
+    @abstractmethod
+    def has_existing_file(self, station_id) -> bool:
+        pass
+
+    # def dataset(self, **kwargs: dict) -> xr.Dataset | None:
+    #     if self.has_existing:
+    #         return xr.open_zarr(self.mapper(**kwargs))
+    #     else:
+    #         return None
+
+    @abstractmethod
+    def write(self, filepath: str, content, encoding, **kwargs):
+        pass
+
+    @abstractmethod
+    def read(self, **kwargs):
+        pass
+
+
+class S3(StoreInterface):
+
+    def __init__(self, dataset_manager, bucket: str):
+        super().__init__(dataset_manager)
+        if not bucket:
+            raise ValueError("Must provide bucket name if parsing to S3")
+        self.bucket = bucket
+
+    def fs(self, refresh: bool = False) -> s3fs.S3FileSystem:
+        if refresh or not hasattr(self, "_fs"):
+            try:
+                self._fs = s3fs.S3FileSystem(
+                    key=settings.AWS_ACCESS_KEY,
+                    secret=settings.AWS_SECRET_KEY
+                    )
+            except KeyError:  # KeyError indicates credentials have not been manually specified
+                self._fs = s3fs.S3FileSystem()  # credentials automatically supplied from ~/.aws/credentials
+            self.dm.log.info("Connected to S3 filesystem")
+        return self._fs
+
+    def file_outpath(self, file_name) -> str:
+        outpath = os.path.join(self.folder_url,
+                               self.dm.file_handler.output_path(omit_root=True),
+                               file_name)
+        return outpath
+
+    @property
+    def folder_url(self) -> str:
+        return f"s3://{self.bucket}/station-test/datasets/"
+
+    def __str__(self) -> str:
+        return self.folder_url
+
+    # def mapper(self, refresh: bool = False, **kwargs: dict) -> fsspec.mapping.FSMap:
+    #     if refresh or not hasattr(self, "_mapper"):
+    #         self._mapper = s3fs.S3Map(root=self.url, s3=self.fs())
+    #     return self._mapper
+
+    def has_existing_file(self, file_name) -> bool:
+        return self.fs().exists(self.file_outpath(file_name))
+
+    def write(self, filepath: str, content, encoding=None, **kwargs):
+        filesystem = self.fs()
+
+        try:
+            with filesystem.open(filepath, 'w', encoding=encoding) as f:
+                if isinstance(content, dict):
+                    json.dump(content, f, sort_keys=False, ensure_ascii=False, indent=4)
+                elif isinstance(content, pd.DataFrame):
+                    content.to_csv(f, index=False)
+                else:
+                    # make this a better error
+                    raise Exception("Content file not identified")
+        except IOError as e:
+            self.dm.log.error("I/O error({0}): {1}".format(e.errno, e.strerror))
+            raise e
+        except Exception as e:
+            self.dm.log.error("Unexpected error writing station file")
+            raise e
+
+    def read(self, filepath: str, file_type=None):
+        if file_type is None:
+            file_type = filepath.split(".")[-1]
+
+        try:
+            if file_type == 'csv':
+                csv = pd.read_csv(filepath)
+                return csv
+            else:
+                # ToDo: make a better error
+                raise Exception('Could not identify file type')
+        except FileNotFoundError:
+            # warning logged in StationSet get_historical_dataframe
+            return None
+
+
+class Local(StoreInterface):
+    def fs(self, refresh: bool = False) -> fsspec.implementations.local.LocalFileSystem:
+        if refresh or not hasattr(self, "_fs"):
+            self._fs = fsspec.filesystem("file")
+        return self._fs
+
+    # def mapper(self, refresh=False, **kwargs) -> fsspec.mapping.FSMap:
+    #     if refresh or not hasattr(self, "_mapper"):
+    #         self._mapper = self.fs().get_mapper(self.path)
+    #     return self._mapper
+
+    def __str__(self) -> str:
+        return str(self.folder_path)
+
+    def file_outpath(self, file_name) -> str:
+        outpath = os.path.join(self.folder_path, file_name)
+        return outpath
+
+    @property
+    def folder_path(self) -> str:
+        return self.dm.file_handler.output_path()
+
+    def has_existing_file(self, file_name) -> bool:
+        return os.path.exists(self.file_outpath(file_name))
+
+    def write(self, filepath: str, content, encoding=None, **kwargs):
+        filesystem = self.fs()
+
+        try:
+            with filesystem.open(filepath, 'w', encoding=encoding) as f:
+                if isinstance(content, dict):
+                    json.dump(content, f, sort_keys=False, ensure_ascii=False, indent=4)
+                elif isinstance(content, pd.DataFrame):
+                    content.to_csv(f, index=False)
+                else:
+                    # make this a better error
+                    raise Exception("Content file not identified")
+        except IOError as e:
+            self.dm.log.error("I/O error({0}): {1}".format(e.errno, e.strerror))
+            raise e
+        except Exception as e:
+            self.dm.log.error("Unexpected error writing station file")
+            raise e
+
+    def read(self):
+        pass

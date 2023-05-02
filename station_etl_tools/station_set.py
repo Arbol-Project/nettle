@@ -20,6 +20,8 @@ from .utils.date_handler import DateHandler
 from .utils.s3_handler import S3Handler
 from .utils.geo_json_handler import GeoJsonHandler
 
+from .utils.store import Local
+
 
 class StationSet(ABC):
     '''
@@ -45,6 +47,7 @@ class StationSet(ABC):
     # HASH_HISTORY_PATH
     # HISTORY_FILE_NAME
     HASH_HISTORY_PATH = os.path.join(HASHES_OUTPUT_ROOT, HISTORY_FILE_NAME)
+
     ### END CONSIDER REMOVING ###
 
     def __init__(self, log=print, custom_output_path=None, custom_metadata_head_path=None,
@@ -139,6 +142,8 @@ class StationSet(ABC):
         """
         whole_history_path = f'{self.name().lower()}.csv'
         specific_history_path = f'{self.name().lower()}/{station_id}.csv'
+
+        store = S3(dataset_manager=self, bucket=settings.S3_STATION_BUCKET)
         dataframe = self.s3_handler.read_csv_from_station(specific_history_path)
 
         if dataframe is None:
@@ -381,16 +386,33 @@ class StationSet(ABC):
         Write out a single file for a station, making sure to save relevant info such as date range
         to self.STATION_DICT. Should be called when no further changes are required to station_df
         '''
+        if 'store' not in kwargs:
+            self.log.error('Store not setted')
+            raise 'Store not setted'
+
         file_name = f"{station_id}.csv"
-        outpath = os.path.join(self.file_handler.output_path(), file_name)
-        station_df.to_csv(outpath, index=False)
+
+        local_store = Local(dataset_manager=self)
+        store = kwargs['store']
+
+        local_outpath = local_store.file_outpath(file_name)
+        outpath = kwargs['store'].file_outpath(file_name)
+
+        local_store.write(local_outpath, station_df)
+        store.write(outpath, station_df)
+
         self.log.info("wrote station file to {}".format(outpath))
 
-    def write_metadata(self):
+    def write_metadata(self, **kwargs):
         '''
         Write a JSON file containing the metadata dict to the output path as `self.METADATA_FILE_NAME`. If the 'date range' field
         is a datetime object, it will be written as iso format in the JSON file. 'final through' will also be converted
         '''
+        if 'store' not in kwargs:
+            self.log.error('Store not setted')
+            raise 'Store not setted'
+
+        store = kwargs['store']
         self.metadata["data dictionary"] = self.DATA_DICT
 
         metadata_formatted = dict(self.metadata)
@@ -400,12 +422,16 @@ class StationSet(ABC):
         if hasattr(self.metadata.get("final through"), "isoformat"):
             metadata_formatted["final through"] = self.metadata["final through"].isoformat(
             )
-        path = os.path.join(self.file_handler.output_path(),
-                            MetadataHandler.METADATA_FILE_NAME)
-        with open(path, 'w') as fp:
-            json.dump(metadata_formatted, fp, sort_keys=False, indent=4)
 
-        self.log.info("wrote metadata to {}".format(path))
+        local_store = Local(dataset_manager=self)
+
+        local_outpath = local_store.file_outpath(MetadataHandler.METADATA_FILE_NAME)
+        outpath = store.file_outpath(MetadataHandler.METADATA_FILE_NAME)
+
+        local_store.write(local_outpath, metadata_formatted)
+        store.write(outpath, metadata_formatted)
+
+        self.log.info("wrote metadata to {}".format(outpath))
 
     @staticmethod
     def _parse_old_stations_from_metadata(old_station_metadata):
@@ -428,7 +454,7 @@ class StationSet(ABC):
 
         return old_station_metadata, old_stations, old_hash
 
-    def station_metadata_to_geojson(self):
+    def station_metadata_to_geojson(self, **kwargs):
         '''
         Take the station metadata self.STATION_DICT and convert it to valid geojson
         '''
@@ -438,12 +464,12 @@ class StationSet(ABC):
 
         self.geo_json_handler.append_features(geojson, old_stations, old_hash,
                                               self.STATION_DICT.items())
-        self.geo_json_handler.write_geojson_to_file_with_geometry_info(geojson)
+        self.geo_json_handler.write_geojson_to_file_with_geometry_info(geojson, self, **kwargs)
         self.geo_json_handler.remove_geometry_from_geojson(geojson)
         self.geo_json_handler.append_stations_not_in_new_update_to_metadata(
             old_station_metadata, old_stations, geojson)
         self.geo_json_handler.write_geojson_to_file_without_geometry_info(
-            geojson)
+            geojson, self, **kwargs)
 
     @staticmethod
     def _check_prepared_initial_data(prepared_initial_data):
@@ -636,7 +662,7 @@ class StationSet(ABC):
 
         self.file_handler.create_output_path()
         # write file and extract important metadata
-        self.write_station_file(station_id, station_df=data['df'])
+        self.write_station_file(station_id, station_df=data['df'], **kwargs)
 
     @abstractmethod
     def on_parse_verify(self, **kwargs):
@@ -663,8 +689,8 @@ class StationSet(ABC):
             self.log.info(
                 f'Station_id={station_id} Time=\033[93m{(t2 - t1):.2f}\033[0m')
 
-        self.write_metadata()  # write metadata.json
-        self.station_metadata_to_geojson()  # write stations.json
+        self.write_metadata(**kwargs)  # write metadata.json
+        self.station_metadata_to_geojson(**kwargs)  # write stations.json
         return self.parse_verify(**kwargs)
 
     # is this necessary? I'm tagging this to remove

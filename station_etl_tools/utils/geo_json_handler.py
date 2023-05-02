@@ -1,29 +1,47 @@
 import json
 import os
 from .metadata_handler import MetadataHandler
+from .store import Local
 
 class GeoJsonHandler:
     def __init__(self, file_handler, log):
         self.file_handler = file_handler
         self.log = log
 
-    def write_geojson_to_file_with_geometry_info(self, geojson):
-        # write out to file with geometry info
-        path = os.path.join(self.file_handler.output_path(),
-                            MetadataHandler.STATION_METADATA_FILE_NAME.replace('json', 'geojson'))
-        with open(path, 'w', encoding='utf-8') as fp:
-            json.dump(geojson, fp, sort_keys=False,
-                      ensure_ascii=False, indent=4)
-        self.log.info("wrote geojson metadata to {}".format(path))
+    def write_geojson_to_file_with_geometry_info(self, geojson, data_manager, **kwargs):
+        if 'store' not in kwargs:
+            self.log.error('Store not setted')
+            raise 'Store not setted'
 
-    def write_geojson_to_file_without_geometry_info(self, geojson):
-        # write out to file without geometry info (save space)
-        path = os.path.join(self.file_handler.output_path(),
-                            MetadataHandler.STATION_METADATA_FILE_NAME)
-        with open(path, 'w', encoding='utf-8') as fp:
-            json.dump(geojson, fp, sort_keys=False,
-                      ensure_ascii=False, indent=4)
-        self.log.info("wrote metadata to {}".format(path))
+        local_store = Local(dataset_manager=data_manager)
+        store = kwargs['store']
+
+        local_outpath = local_store.file_outpath(
+            MetadataHandler.STATION_METADATA_FILE_NAME.replace('json', 'geojson'))
+        outpath = store.file_outpath(
+            MetadataHandler.STATION_METADATA_FILE_NAME.replace('json', 'geojson'))
+
+        local_store.write(local_outpath, geojson, encoding='utf-8')
+        store.write(outpath, geojson, encoding='utf-8')
+
+        self.log.info("wrote geojson metadata to {}".format(outpath))
+
+    def write_geojson_to_file_without_geometry_info(self, geojson, data_manager, **kwargs):
+        if 'store' not in kwargs:
+            self.log.error('Store not setted')
+            raise 'Store not setted'
+
+        local_store = Local(dataset_manager=data_manager)
+        store = kwargs['store']
+
+        local_outpath = local_store.file_outpath(
+            MetadataHandler.STATION_METADATA_FILE_NAME)
+        outpath = store.file_outpath(MetadataHandler.STATION_METADATA_FILE_NAME)
+
+        local_store.write(local_outpath, geojson, encoding='utf-8')
+        store.write(outpath, geojson, encoding='utf-8')
+
+        self.log.info("wrote metadata to {}".format(outpath))
 
     def remove_geometry_from_geojson(self, geojson):
         # remove geometry to save space
