@@ -19,9 +19,7 @@ from .utils.metadata_handler import MetadataHandler
 from .utils.date_handler import DateHandler
 from .utils.s3_handler import S3Handler
 from .utils.geo_json_handler import GeoJsonHandler
-
 from .utils.store import Local
-
 
 class StationSet(ABC):
     '''
@@ -143,7 +141,6 @@ class StationSet(ABC):
         whole_history_path = f'{self.name().lower()}.csv'
         specific_history_path = f'{self.name().lower()}/{station_id}.csv'
 
-        store = S3(dataset_manager=self, bucket=settings.S3_STATION_BUCKET)
         dataframe = self.s3_handler.read_csv_from_station(specific_history_path)
 
         if dataframe is None:
@@ -386,33 +383,16 @@ class StationSet(ABC):
         Write out a single file for a station, making sure to save relevant info such as date range
         to self.STATION_DICT. Should be called when no further changes are required to station_df
         '''
-        if 'store' not in kwargs:
-            self.log.error('Store not setted')
-            raise 'Store not setted'
-
         file_name = f"{station_id}.csv"
-
         local_store = Local(dataset_manager=self)
-        store = kwargs['store']
-
-        local_outpath = local_store.file_outpath(file_name)
-        outpath = kwargs['store'].file_outpath(file_name)
-
-        local_store.write(local_outpath, station_df)
-        store.write(outpath, station_df)
-
-        self.log.info("wrote station file to {}".format(outpath))
+        filepath = local_store.write(file_name, station_df)
+        self.log.info("wrote station file to {}".format(filepath))
 
     def write_metadata(self, **kwargs):
         '''
         Write a JSON file containing the metadata dict to the output path as `self.METADATA_FILE_NAME`. If the 'date range' field
         is a datetime object, it will be written as iso format in the JSON file. 'final through' will also be converted
         '''
-        if 'store' not in kwargs:
-            self.log.error('Store not setted')
-            raise 'Store not setted'
-
-        store = kwargs['store']
         self.metadata["data dictionary"] = self.DATA_DICT
 
         metadata_formatted = dict(self.metadata)
@@ -424,14 +404,8 @@ class StationSet(ABC):
             )
 
         local_store = Local(dataset_manager=self)
-
-        local_outpath = local_store.file_outpath(MetadataHandler.METADATA_FILE_NAME)
-        outpath = store.file_outpath(MetadataHandler.METADATA_FILE_NAME)
-
-        local_store.write(local_outpath, metadata_formatted)
-        store.write(outpath, metadata_formatted)
-
-        self.log.info("wrote metadata to {}".format(outpath))
+        filepath = local_store.write(MetadataHandler.METADATA_FILE_NAME, metadata_formatted)
+        self.log.info("wrote metadata to {}".format(filepath))
 
     @staticmethod
     def _parse_old_stations_from_metadata(old_station_metadata):

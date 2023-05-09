@@ -29,7 +29,7 @@ classifiers = [
 ]
 
 [tool.setuptools]
-packages=['station_etl_tools']
+packages=['station_etl_tools', 'station_etl_tools.utils']
 
 [tool.setuptools_scm]
 version_scheme = "post-release"
@@ -39,7 +39,7 @@ write_to = "station_etl_tools/_version.py"
 [project.urls]
 Homepage = "https://arbol.io/"
 
-# CHECK THIS LATER
+# CHECK THIS LATERstation_etl_to
 
 #[project.urls]
 #"Homepage" = "https://github.com/Arbol-Project/station-climate-etl-ipfs"

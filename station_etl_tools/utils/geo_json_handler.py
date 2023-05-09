@@ -9,47 +9,26 @@ class GeoJsonHandler:
         self.log = log
 
     def write_geojson_to_file_with_geometry_info(self, geojson, data_manager, **kwargs):
-        if 'store' not in kwargs:
-            self.log.error('Store not setted')
-            raise 'Store not setted'
-
         local_store = Local(dataset_manager=data_manager)
-        store = kwargs['store']
-
-        local_outpath = local_store.file_outpath(
-            MetadataHandler.STATION_METADATA_FILE_NAME.replace('json', 'geojson'))
-        outpath = store.file_outpath(
-            MetadataHandler.STATION_METADATA_FILE_NAME.replace('json', 'geojson'))
-
-        local_store.write(local_outpath, geojson, encoding='utf-8')
-        store.write(outpath, geojson, encoding='utf-8')
-
-        self.log.info("wrote geojson metadata to {}".format(outpath))
+        file_name = MetadataHandler.STATION_METADATA_FILE_NAME.replace('json', 'geojson')
+        filepath = local_store.write(file_name, geojson, encoding='utf-8')
+        self.log.info("wrote geojson metadata to {}".format(filepath))
 
     def write_geojson_to_file_without_geometry_info(self, geojson, data_manager, **kwargs):
-        if 'store' not in kwargs:
-            self.log.error('Store not setted')
-            raise 'Store not setted'
-
         local_store = Local(dataset_manager=data_manager)
-        store = kwargs['store']
+        file_name = MetadataHandler.STATION_METADATA_FILE_NAME
+        filepath = local_store.write(file_name, geojson, encoding='utf-8')
+        self.log.info("wrote metadata to {}".format(filepath))
 
-        local_outpath = local_store.file_outpath(
-            MetadataHandler.STATION_METADATA_FILE_NAME)
-        outpath = store.file_outpath(MetadataHandler.STATION_METADATA_FILE_NAME)
-
-        local_store.write(local_outpath, geojson, encoding='utf-8')
-        store.write(outpath, geojson, encoding='utf-8')
-
-        self.log.info("wrote metadata to {}".format(outpath))
-
-    def remove_geometry_from_geojson(self, geojson):
+    @staticmethod
+    def remove_geometry_from_geojson(geojson):
         # remove geometry to save space
         for i in range(len(geojson['features'])):
             geojson['features'][i].pop('geometry')
 
     # ToDo: Bug in feature
-    def append_stations_not_in_new_update_to_metadata(self, old_station_metadata, old_stations, geojson):
+    @staticmethod
+    def append_stations_not_in_new_update_to_metadata(old_station_metadata, old_stations, geojson):
         for old_feature in old_station_metadata['features']:
             if old_feature in old_stations:
                 # maybe this should be old_feature['properties']['active hash'] = False

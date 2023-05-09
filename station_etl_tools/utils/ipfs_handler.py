@@ -179,7 +179,9 @@ class IpfsHandler:
         if self.is_force_http_enabled():
             heads = self.heads_by_http()
         elif os.path.exists(self.HASH_HEADS_PATH):
-            heads = self.heads_by_filesystem()
+            # Comment made by Alisson 2023_05_03. Remove this line
+            # heads = self.heads_by_filesystem()
+            heads = {}
         else:
             heads = {}
 
