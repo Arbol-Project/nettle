@@ -7,15 +7,16 @@ class MetadataHandler:
     METADATA_FILE_NAME = "metadata.json"
     STATION_METADATA_FILE_NAME = "stations.json"
 
-    def __init__(self, ipfs_handler, http_root, log, file_handler, dict_path,
-                 station_set_name, custom_metadata_head_path):
-        self._ipfs_handler = ipfs_handler
+    def __init__(self, http_root, log, file_handler, dict_path,
+                 station_set_name, custom_metadata_head_path, store):
+        # self._ipfs_handler = ipfs_handler
         self._log = log
         self._file_handler = file_handler
         self.http_root = http_root
         self.dict_path = dict_path
         self.station_set_name = station_set_name
         self.custom_metadata_head_path = custom_metadata_head_path
+        self.store = store
 
     def hash_url(self, hash_str, link_name=""):
         '''
@@ -30,27 +31,43 @@ class MetadataHandler:
                 DateHandler.convert_date_range(latest_metadata["date range"]))
         return latest_metadata
 
-    def get_raw_latest_metadata(self, custom_metadata_head_path, force_filesystem, key, path,
-                                metadata_filename, station_filename, latest_hash,
-                                is_force_http_enabled=False, is_force_filesystem_enabled=False,
-                                last_local_output_directory=None):
-        if custom_metadata_head_path is not None:
-            return self.metadata_by_filesystem("", path=custom_metadata_head_path)
-        elif force_filesystem:
-            return self.metadata_by_filesystem(last_local_output_directory, path=path)
-        elif is_force_http_enabled:
-            return self.metadata_by_http(latest_hash, path=path)
-        elif not is_force_filesystem_enabled and latest_hash is not None:
-            return self.metadata_by_hash(latest_hash, path=path)
-        elif last_local_output_directory:
-            return self.metadata_by_filesystem(last_local_output_directory, path=path)
-        elif path == metadata_filename:
-            return {
-                "documentation": {},
-                "api documentation": {}
-            }
-        elif path == station_filename:
-            return {"features": []}
+    def get_raw_latest_metadata_new_version(self, path, last_local_output_directory):
+        # Check if the method latest_metadata exists in store
+        if hasattr(self.store, 'latest_metadata') and callable(getattr(self.store, 'latest_metadata')):
+            return self.store.latest_metadata(path, last_local_output_directory=last_local_output_directory)
+        else:
+            self._log.info(f"Using default metadata {path}")
+            if path == self.METADATA_FILE_NAME:
+                return {
+                    "documentation": {},
+                    "api documentation": {}
+                }
+            elif path == self.STATION_METADATA_FILE_NAME:
+                return {
+                    "features": []
+                }
+
+    # def get_raw_latest_metadata(self, custom_metadata_head_path, force_filesystem, key, path,
+    #                             metadata_filename, station_filename, latest_hash,
+    #                             is_force_http_enabled=False, is_force_filesystem_enabled=False,
+    #                             last_local_output_directory=None):
+    #     if custom_metadata_head_path is not None:
+    #         return self.metadata_by_filesystem("", path=custom_metadata_head_path)
+    #     elif force_filesystem:
+    #         return self.metadata_by_filesystem(last_local_output_directory, path=path)
+    #     elif is_force_http_enabled:
+    #         return self.metadata_by_http(latest_hash, path=path)
+    #     elif not is_force_filesystem_enabled and latest_hash is not None:
+    #         return self.metadata_by_hash(latest_hash, path=path)
+    #     elif last_local_output_directory:
+    #         return self.metadata_by_filesystem(last_local_output_directory, path=path)
+    #     elif path == metadata_filename:
+    #         return {
+    #             "documentation": {},
+    #             "api documentation": {}
+    #         }
+    #     elif path == station_filename:
+    #         return {"features": []}
 
     def latest_metadata_dict(self, custom_metadata_head_path, force_filesystem, key, path,
                              metadata_filename, station_filename, latest_hash,
@@ -63,11 +80,12 @@ class MetadataHandler:
         to `self.last_local_output_directory` and can be used to change the location where metadata is searched for in the case of using
         the filesystem.
         '''
-        latest_metadata = \
-            self.get_raw_latest_metadata(custom_metadata_head_path, force_filesystem, key, path,
-                                         metadata_filename, station_filename, latest_hash,
-                                         is_force_http_enabled, is_force_filesystem_enabled,
-                                         last_local_output_directory)
+        latest_metadata = self.get_raw_latest_metadata_new_version(path, last_local_output_directory)
+        # latest_metadata = \
+        #     self.get_raw_latest_metadata(custom_metadata_head_path, force_filesystem, key, path,
+        #                                  metadata_filename, station_filename, latest_hash,
+        #                                  is_force_http_enabled, is_force_filesystem_enabled,
+        #                                  last_local_output_directory)
 
         latest_metadata = self.translate_latest_metadata_json_date_format_to_python_datetime(
             latest_metadata)
@@ -81,6 +99,7 @@ class MetadataHandler:
         '''
         Look up a hash in IPFS and return the metadata.json file associated with it
         '''
+        print('IPFS - uses ipfs handler metadata 1')
         return self._ipfs_handler.contents_from_hash(recursive_hash, path, as_json=True)
 
     def metadata_by_filesystem(self, root, path):
@@ -99,6 +118,7 @@ class MetadataHandler:
         '''
         Connect to the IPFS HTTP API running on `self.http_root` and return the metadata file associated with the desired hash
         '''
+        print('IPFS - uses ipfs handler metadata 2')
         return self._ipfs_handler.contents_from_hash(recursive_hash, path, as_json=True)
 
     def get_metadata_dicts(self):
@@ -121,8 +141,7 @@ class MetadataHandler:
     def latest_metadata(self, force_filesystem=False, key=None, root=None, path=METADATA_FILE_NAME):
         return self.latest_metadata_dict(self.custom_metadata_head_path, force_filesystem, key, path,
                                          self.METADATA_FILE_NAME, self.STATION_METADATA_FILE_NAME,
-                                         self._ipfs_handler.latest_hash(
-                                             key=key),
-                                         self._ipfs_handler.is_force_http_enabled(),
-                                         self._ipfs_handler.is_force_filesystem_enabled(),
+                                         'REMOVE THIS, OLD IPFS STUFF',
+                                         False,
+                                         False,
                                          self._file_handler.last_local_output_directory(root=root))

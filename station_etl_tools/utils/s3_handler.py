@@ -1,5 +1,5 @@
-from . import settings
 import pandas as pd
+from . import settings
 
 
 class S3Handler:

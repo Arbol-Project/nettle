@@ -4,19 +4,24 @@ from __future__ import annotations
 import os
 import json
 import s3fs
-# import ipldstore
-import pathlib
 import fsspec
+import pandas as pd
 from abc import abstractmethod, ABC
 from . import settings
 from .ipfsio import IPFSIO
-import pandas as pd
 
 
 class StoreInterface(ABC):
 
     def __init__(self, dataset_manager):
         self.dm = dataset_manager
+
+    @classmethod
+    def name(cls):
+        '''
+        Return the name of instantiated class
+        '''
+        return f"{cls.__name__}".lower()
 
     # @abstractmethod
     # def mapper(self, **kwargs: dict) -> collections.abc.MutableMapping:
@@ -38,6 +43,10 @@ class StoreInterface(ABC):
 
     @abstractmethod
     def read(self, **kwargs):
+        pass
+
+    @abstractmethod
+    def latest_metadata(self, path, **kwargs):
         pass
 
 
@@ -74,9 +83,21 @@ class S3(StoreInterface):
             self.dm.file_handler.output_path(omit_root=True)
         )
 
+    def latest_directory(self):
+        path = os.path.join(f"{self.folder_url_without_s3}", self.dm.name())
+        directories = self.list_directory(path)
+        return sorted(directories)[-1]
+
+    def list_directory(self, path):
+        return self.fs().ls(path)
+
     @property
     def folder_url(self) -> str:
-        return f"s3://{self.bucket}/station-test/datasets/"
+        return f"s3://{self.folder_url_without_s3}"
+
+    @property
+    def folder_url_without_s3(self):
+        return f"{self.bucket}/datasets/"
 
     def __str__(self) -> str:
         return self.folder_url
@@ -86,16 +107,25 @@ class S3(StoreInterface):
     #         self._mapper = s3fs.S3Map(root=self.url, s3=self.fs())
     #     return self._mapper
 
-    def has_existing_file(self, file_name) -> bool:
+    def has_existing_file_in_dm_folder(self, file_name) -> bool:
         return self.fs().exists(self.file_outpath(file_name))
+
+    def has_existing_file(self, file_path):
+        return self.fs().exists(file_path)
 
     def cp_local_folder_to_remote(self):
         filesystem = self.fs()
         local_path = self.dm.file_handler.output_path()
         s3_path = self.folder_outpath()
 
+        if self.has_existing_file(s3_path):
+            # Maybe override folder instead of forbid?
+            error_message = f"Can't move files. A folder with the same name {s3_path} already exists."
+            self.dm.log.error(error_message)
+            return False
+
         try:
-            filesystem.put(local_path, s3_path, recursive=True)
+            return filesystem.put(local_path, s3_path, recursive=True)
         except IOError as e:
             self.dm.log.error("I/O error({0}): {1}".format(e.errno, e.strerror))
             raise e
@@ -136,6 +166,9 @@ class S3(StoreInterface):
             if file_type == 'csv':
                 csv = pd.read_csv(filepath)
                 return csv
+            elif file_type == 'json':
+                with self.fs().open(filepath, 'r') as f:
+                    return json.load(f)
             else:
                 # ToDo: make a better error
                 raise Exception('Could not identify file type')
@@ -143,6 +176,10 @@ class S3(StoreInterface):
             # warning logged in StationSet get_historical_dataframe
             return None
 
+    def latest_metadata(self, path, **kwargs):
+        directory = self.latest_directory()
+        file = f"{directory}/{path}"
+        return self.read(file)
 
 class Local(StoreInterface):
     def fs(self, refresh: bool = False) -> fsspec.implementations.local.LocalFileSystem:
@@ -194,11 +231,29 @@ class Local(StoreInterface):
     def read(self):
         pass
 
+    def metadata_by_filesystem(self, root, path):
+        '''
+        Get metadata from local filesystem by passing in a root folder path
+        '''
+        metadata_path = os.path.join(root, path)
+        self.dm.log.info(f"getting metadata from {metadata_path}")
+        if os.path.exists(metadata_path):
+            with open(metadata_path, "rt") as metadata:
+                return json.load(metadata)
+        else:
+            self.dm.log.error(f"no metadata file found at {metadata_path}")
+
+    def latest_metadata(self, path, **kwargs):
+        last_local_output_directory = kwargs.get('last_local_output_directory')
+        return self.metadata_by_filesystem(last_local_output_directory, path=path)
+
 
 class IPFS(StoreInterface):
     HEADS_FILE_NAME = "heads.json"
+    HISTORY_FILE_NAME = "history.json"
     HASHES_OUTPUT_ROOT = settings.HASHES_OUTPUT_ROOT
     HASH_HEADS_PATH = os.path.join(HASHES_OUTPUT_ROOT, HEADS_FILE_NAME)
+    HASH_HISTORY_PATH = os.path.join(HASHES_OUTPUT_ROOT, HISTORY_FILE_NAME)
 
     def __init__(self, dataset_manager):
         super().__init__(dataset_manager)
@@ -208,20 +263,72 @@ class IPFS(StoreInterface):
         pass
 
     def file_outpath(self, file_name) -> str:
-        return 'bafyreihyrqbkboajigznlhhf2g7vuyzmvag7mclighw5e3tu4n3zewfu4i'
+        pass
 
-    def _read_hashes_file(self, encoding='utf-8'):
-        with open(self.HASH_HEADS_PATH, encoding=encoding) as fp:
-            self.dm.log.info(f"reading ipfs hash from {self.HASH_HEADS_PATH}")
-            return json.load(fp)
+    def _read_hashes_file(self, path, encoding='utf-8'):
+        self.dm.log.info(f"reading ipfs hash from {path}")
+        with open(path, 'r', encoding=encoding) as f:
+            return json.load(f)
 
-    def _append_hash_in_hashes_file(self, hashes, content):
-        hashes[f"{self.dm}_{self.dm.today_with_time.date()}"] = content
+    def _create_empty_hashes_file(self, path, encoding='utf-8'):
+        self.dm.log.info(f"could not read hash file, creating a new one in {path}")
+        # Create Directory
+        try:
+            os.makedirs(self.HASHES_OUTPUT_ROOT)
+        except FileExistsError:
+            # directory already exists
+            pass
+
+        # Create File with empty dict
+        with open(path, 'w+', encoding=encoding) as f:
+            json.dump({}, f, sort_keys=True, ensure_ascii=False, indent=4)
+        return {}
+
+    @staticmethod
+    def _append_hash_in_hashes(hashes, content, key):
+        hashes[key] = content
         return hashes
 
-    def _write_in_hashes_file(self, hash_ipfs, encoding='utf-8'):
-        with open(self.HASH_HEADS_PATH, "w", encoding=encoding) as fp:
+    def _append_hash_in_history_hashes(self, hashes, content):
+        return self._append_hash_in_hashes(hashes, content, f"{self.dm}_{self.dm.today_with_time.date().strftime('%Y%m%d')}")
+
+    def _append_hash_in_heads_hashes(self, hashes, content):
+        return self._append_hash_in_hashes(hashes, content, f"{self.dm}")
+
+    def _write_in_hashes_file(self, hash_ipfs, hash_path, encoding='utf-8'):
+        with open(hash_path, "w", encoding=encoding) as fp:
             json.dump(hash_ipfs, fp, sort_keys=True, ensure_ascii=False, indent=4)
+
+    def _write_hash_in_hashes_file(self, directory_hash):
+        try:
+            heads_hashes = self._read_hashes_file(self.HASH_HEADS_PATH)
+        except FileNotFoundError:
+            try:
+                heads_hashes = self._create_empty_hashes_file(self.HASH_HEADS_PATH)
+            except IOError as e:
+                self.dm.log.error("I/O error({0}): {1}".format(e.errno, e.strerror))
+                raise e
+            except Exception as e:
+                self.dm.log.error("Unexpected error writing heads hashes")
+                raise e
+
+        try:
+            history_hashes = self._read_hashes_file(self.HASH_HISTORY_PATH)
+        except FileNotFoundError:
+            try:
+                history_hashes = self._create_empty_hashes_file(self.HASH_HISTORY_PATH)
+            except IOError as e:
+                self.dm.log.error("I/O error({0}): {1}".format(e.errno, e.strerror))
+                raise e
+            except Exception as e:
+                self.dm.log.error("Unexpected error writing history hashes")
+                raise e
+
+        heads_hashes = self._append_hash_in_heads_hashes(heads_hashes, directory_hash)
+        history_hashes = self._append_hash_in_history_hashes(history_hashes, directory_hash)
+
+        self._write_in_hashes_file(heads_hashes, self.HASH_HEADS_PATH)
+        self._write_in_hashes_file(history_hashes, self.HASH_HISTORY_PATH)
 
     def write(self, file_name: str, content, encoding='utf-8', **kwargs):
         # check if exist first
@@ -255,27 +362,58 @@ class IPFS(StoreInterface):
         with open(self.HASH_HEADS_PATH, "w", encoding=encoding) as fp:
             json.dump(hash_ipfs, fp, sort_keys=True, ensure_ascii=False, indent=4)
 
-    def read(self, **kwargs):
-        print('read')
-        file = self.ipfs_io.ipfs_get('bafyreihyrqbkboajigznlhhf2g7vuyzmvag7mclighw5e3tu4n3zewfu4i')
-        # file = ip.ipns_retrieve_object('bafyreihyrqbkboajigznlhhf2g7vuyzmvag7mclighw5e3tu4n3zewfu4i')
-        print(file)
+    def read(self, cid, **kwargs):
+        file_content = self.ipfs_io.ipfs_get(cid)
+        return file_content
+
+    def cat(self, cid, **kwargs):
+        file_content = self.ipfs_io.ipfs_cat(cid)
+        return file_content
+
+    def list_directory_files(self, cid, **kwargs):
+        return self.ipfs_io.ipfs_ls(cid)
+
+    def latest_directory_hash(self, key, encoding='utf-8'):
+        try:
+            heads_hash = self._read_hashes_file(self.HASH_HEADS_PATH)
+            return heads_hash[key]
+        except (FileNotFoundError, IOError) as e:
+            raise e
+        except KeyError as e:
+            raise e
+
+    def json_key(self, append_date=False):
+        '''
+        Returns the key value that can identify this set in a JSON file. If `append_date` is True, add today's date to the end
+        of the string
+        '''
+        return self.json_key_formatter(self.dm.name(), append_date)
+
+    def json_key_formatter(self, name, append_date=False):
+        import datetime
+        key = "{}".format(name)
+        if append_date:
+            key = "{}{}{}".format(key, '_', datetime.datetime.now(
+            ).strftime(self.dm.date_handler.DATE_FORMAT_FOLDER))
+
+        return key
 
     def cp_local_folder_to_remote(self):
         local_path = self.dm.file_handler.output_path()
 
         try:
+            # copy files to ipfs
             files = []
             for filename in os.listdir(local_path):
                 heads_file = os.path.join(local_path, filename)
                 files.append(open(heads_file, 'r'))
             directory_hash = self.ipfs_io.ipfs_add_multiple_files_wrapping_with_directory(files)
             self.dm.log.info(f"files created in IPFS with directory hash {directory_hash}")
+
+            # set hashes in file
             # ToDo: Check if hashes/heads.json exist, if not create it with an empty dict
-            # ToDo: append directory_hash to hashes/heads.json
-            hashes = self._read_hashes_file()
-            hashes = self._append_hash_in_hashes_file(hashes, directory_hash)
-            self._write_in_hashes_file(hashes)
+            self._write_hash_in_hashes_file(directory_hash)
+
             self.dm.log.info(f"directory hash written in {self.HASH_HEADS_PATH}")
         except IOError as e:
             self.dm.log.error("I/O error({0}): {1}".format(e.errno, e.strerror))
@@ -283,3 +421,17 @@ class IPFS(StoreInterface):
         except Exception as e:
             self.dm.log.error("Unexpected error writing station file")
             raise e
+
+    def latest_hash(self):
+        key = self.json_key()
+        directory_cid = self.latest_directory_hash(key)
+        return directory_cid
+
+    def latest_metadata(self, path, **kwargs):
+        directory_cid = self.latest_hash()
+        files = self.list_directory_files(directory_cid)
+        metadata_file = next((file for file in files if file['Name'] == path), None)
+        if metadata_file is None:
+            print('Metadata could not be found')
+        metadata_hash = metadata_file['Hash']
+        return self.cat(metadata_hash)

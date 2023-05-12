@@ -6,14 +6,12 @@
 from abc import ABC, abstractmethod
 
 import datetime
-import json
 import os
 import pandas as pd
-from .utils import settings
 import time
 from collections.abc import Iterator
+from .utils import settings
 from .utils.log_info import LogInfo
-from .utils.ipfs_handler import IpfsHandler
 from .utils.file_handler import FileHandler
 from .utils.metadata_handler import MetadataHandler
 from .utils.date_handler import DateHandler
@@ -50,14 +48,14 @@ class StationSet(ABC):
 
     def __init__(self, log=print, custom_output_path=None, custom_metadata_head_path=None,
                  custom_latest_hash=None, publish_to_ipns=False, rebuild=False, force_http=False,
-                 custom_input_path=None, http_root=settings.GATEWAY_URL
+                 custom_input_path=None, http_root=settings.GATEWAY_URL, store=None
                  ):
         '''
         Set member variables to defaults. Set the libeccodes lookup path.
         '''
         self.new_files = []
         self.log = LogInfo(log, self.name())
-        self.ipfs = None
+        # self.ipfs = None
         self.custom_latest_hash = custom_latest_hash
         self.publish_to_ipns = publish_to_ipns
         self.metadata = None
@@ -67,22 +65,26 @@ class StationSet(ABC):
         self.today_with_time = datetime.datetime.now()
 
         self.date_handler = DateHandler()
-        self.ipfs_handler = IpfsHandler(force_http, self.log,
-                                        http_root, custom_output_path, self.name(),
-                                        self.climate_measurement_span())
+        # self.ipfs_handler = IpfsHandler(force_http, self.log,
+        #                                 http_root, custom_output_path, self.name(),
+        #                                 self.climate_measurement_span())
         self.file_handler = FileHandler(custom_input_path, custom_output_path,
                                         self.climate_measurement_span(),
                                         self.today_with_time,
                                         relative_path=self.name())
+        self.store = store
+        self.store.dm = self
 
-        self.metadata_handler = MetadataHandler(self.ipfs_handler, http_root,
+        self.metadata_handler = MetadataHandler(http_root,
                                                 self.log, self.file_handler,
                                                 self._correct_dict_path(),
-                                                self.name(), custom_metadata_head_path)
+                                                self.name(), custom_metadata_head_path,
+                                                self.store)
         self.s3_handler = S3Handler(self.log)
         self.geo_json_handler = GeoJsonHandler(self.file_handler, self.log)
         self.STATION_DICT = {}
         self.DATA_DICT = {}
+
 
     def __str__(self):
         return self.name()
@@ -104,7 +106,7 @@ class StationSet(ABC):
         # else:
         #     return os.getcwd()
 
-        return os.getcwd()
+        return os.path.join(os.getcwd(), "etls")
 
     def rebuild_requested(self):
         '''
@@ -178,7 +180,7 @@ class StationSet(ABC):
                     raise Exception(
                         f'Station {station_id} was in your last run but is no longer'
                         f' in your static list of stations, why is this?')
-        except TypeError:
+        except (FileNotFoundError, IOError, TypeError, KeyError):
             print('Likely first run, this is safe')
 
     def get_station_ids(self):
@@ -418,8 +420,11 @@ class StationSet(ABC):
                 path=MetadataHandler.STATION_METADATA_FILE_NAME)
             old_stations = self._parse_old_stations_from_metadata(
                 old_station_metadata)
-            old_hash = self.ipfs_handler.latest_hash()
-        except TypeError:
+            if self.store.name() == 'ipfs':
+                old_hash = self.store.latest_hash()
+            else:
+                old_hash = None
+        except (FileNotFoundError, IOError, TypeError, KeyError):
             # first run
             old_station_metadata = {
                 "type": "FeatureCollection", "features": []}
@@ -678,21 +683,22 @@ class StationSet(ABC):
         '''
         pass
 
-    def add_to_ipfs(self, suppress_adding_to_heads=False, recursive=False, path=None,
-                    key=None):
-        '''
-        Add contents of directory at `path` to IPFS. If `path` is `None`, it defaults
-        to `self.output_path()`. If `suppress_adding_to_heads` is `False`, store
-        resulting hash in heads file, overwriting any hash already stored for this set.
-        Recursive flag only has to be set if there are directories within the passed
-        directory that also need to be added.
-        '''
-        if path is None:
-            path = self.file_handler.output_path()
-
-        return self.ipfs_handler.add_directory_to_ipfs(path, key, self.publish_to_ipns,
-                                                       suppress_adding_to_heads,
-                                                       recursive)
+    # def add_to_ipfs(self, suppress_adding_to_heads=False, recursive=False, path=None,
+    #                 key=None):
+    #     '''
+    #     Add contents of directory at `path` to IPFS. If `path` is `None`, it defaults
+    #     to `self.output_path()`. If `suppress_adding_to_heads` is `False`, store
+    #     resulting hash in heads file, overwriting any hash already stored for this set.
+    #     Recursive flag only has to be set if there are directories within the passed
+    #     directory that also need to be added.
+    #     '''
+    #     if path is None:
+    #         path = self.file_handler.output_path()
+    #
+    #     print('IPFS - uses ipfs handler 3')
+    #     return self.ipfs_handler.add_directory_to_ipfs(path, key, self.publish_to_ipns,
+    #                                                    suppress_adding_to_heads,
+    #                                                    recursive)
 
     @classmethod
     def get_subclasses(cls) -> Iterator:

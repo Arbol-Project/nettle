@@ -56,6 +56,16 @@ class IPFSIO:
         )
         res.raise_for_status()
 
+    def ipfs_cat(self, cid):
+        res = self.ipfs_session.post(
+            self._host + "/api/v0/cat",
+            timeout=self._default_timeout,
+            params={"arg": str(cid)},
+        )
+        res.raise_for_status()
+        # return res.content
+        return json.loads(res.content)
+
     def ipfs_add_multiple_files_wrapping_with_directory(self, files_array):
         """
 
