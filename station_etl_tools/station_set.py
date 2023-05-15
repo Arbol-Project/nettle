@@ -37,13 +37,7 @@ class StationSet(ABC):
     # paths relative to the script directory
     OUTPUT_ROOT = settings.OUTPUT_ROOT
     HASHES_OUTPUT_ROOT = settings.HASHES_OUTPUT_ROOT
-
-    # Is this used? Maybe move these to ipfs
-    # HASHES_OUTPUT_ROOT
-    # HASH_HISTORY_PATH
-    # HISTORY_FILE_NAME
     HASH_HISTORY_PATH = os.path.join(HASHES_OUTPUT_ROOT, HISTORY_FILE_NAME)
-
     ### END CONSIDER REMOVING ###
 
     def __init__(self, log=print, custom_output_path=None, custom_metadata_head_path=None,
@@ -65,9 +59,6 @@ class StationSet(ABC):
         self.today_with_time = datetime.datetime.now()
 
         self.date_handler = DateHandler()
-        # self.ipfs_handler = IpfsHandler(force_http, self.log,
-        #                                 http_root, custom_output_path, self.name(),
-        #                                 self.climate_measurement_span())
         self.file_handler = FileHandler(custom_input_path, custom_output_path,
                                         self.climate_measurement_span(),
                                         self.today_with_time,
@@ -99,13 +90,6 @@ class StationSet(ABC):
         return hash(str(self))
 
     def _correct_dict_path(self):
-        # Don't hardcode like this
-        # Check if name is in valid_source_keys in sources.py
-        # if self.name() == 'bom2' or self.name() == 'cwv2':
-        #     return os.path.dirname(__file__)
-        # else:
-        #     return os.getcwd()
-
         return os.path.join(os.getcwd(), "etls")
 
     def rebuild_requested(self):
@@ -539,13 +523,6 @@ class StationSet(ABC):
         # self.after_update_verify(data, **kwargs)
         return result
 
-    # At some point this info should be set
-    # data['extract_result']
-    # data['transform_result']
-    # data['df']
-    # # maybe
-    # data['new_start']
-    # data['station_verify_result']
     def update_local_input(self, **kwargs):
         data = self.update_prepare_initial_data()
 
@@ -567,11 +544,6 @@ class StationSet(ABC):
     @staticmethod
     def before_parse_initial_data(**kwargs):
         return {}
-        # data_dict, station_dict = self.metadata_handler.get_metadata_dicts()
-        # if not self.DATA_DICT:
-        #     self.DATA_DICT = data_dict
-        # if not self.STATION_DICT:
-        #     self.STATION_DICT = station_dict
 
     @abstractmethod
     def on_parse_initial_data(self, data, **kwargs):
@@ -601,7 +573,6 @@ class StationSet(ABC):
 
     @abstractmethod
     def on_parse_transform(self, station_id, data, **kwargs):
-        # make sure data is in correct format
         pass
 
     def after_parse_transform(self, station_id, data, **kwargs):
@@ -625,8 +596,6 @@ class StationSet(ABC):
         self.on_parse_load(station_id, data, **kwargs)
         self.after_parse_load(station_id, data, **kwargs)
 
-    # this will try to access self.metadata, if it doenst exist will crash
-    # maybe move its instanciation from station to stationset
     def after_parse_load(self, station_id, data, **kwargs):
         try:
             station_df = data['df']
@@ -634,8 +603,6 @@ class StationSet(ABC):
             self.log.error('data[\'df\'] not setted in on_parse_transform')
             return
 
-        # maybe try to move this to after transform? need to move instantiation
-        # of self.metadata first
         self.write_info_in_station_dict(station_id, station_df)
         self.load_verify(station_id, station_df)
 
@@ -683,26 +650,9 @@ class StationSet(ABC):
         '''
         pass
 
-    # def add_to_ipfs(self, suppress_adding_to_heads=False, recursive=False, path=None,
-    #                 key=None):
-    #     '''
-    #     Add contents of directory at `path` to IPFS. If `path` is `None`, it defaults
-    #     to `self.output_path()`. If `suppress_adding_to_heads` is `False`, store
-    #     resulting hash in heads file, overwriting any hash already stored for this set.
-    #     Recursive flag only has to be set if there are directories within the passed
-    #     directory that also need to be added.
-    #     '''
-    #     if path is None:
-    #         path = self.file_handler.output_path()
-    #
-    #     print('IPFS - uses ipfs handler 3')
-    #     return self.ipfs_handler.add_directory_to_ipfs(path, key, self.publish_to_ipns,
-    #                                                    suppress_adding_to_heads,
-    #                                                    recursive)
-
-    @classmethod
-    def get_subclasses(cls) -> Iterator:
-        """Create a generator with all the subclasses and sub-subclasses of a parent class"""
-        for subclass in cls.__subclasses__():
-            yield from subclass.get_subclasses()
-            yield subclass
+    # @classmethod
+    # def get_subclasses(cls) -> Iterator:
+    #     """Create a generator with all the subclasses and sub-subclasses of a parent class"""
+    #     for subclass in cls.__subclasses__():
+    #         yield from subclass.get_subclasses()
+    #         yield subclass

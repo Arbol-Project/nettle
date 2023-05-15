@@ -27,5 +27,3 @@ class S3Handler:
             # warning logged in StationSet get_historical_dataframe
             return None
 
-    def add_to_s3(self):
-        pass

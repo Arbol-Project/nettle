@@ -177,9 +177,15 @@ class S3(StoreInterface):
             return None
 
     def latest_metadata(self, path, **kwargs):
+        self.dm.log.info(f"getting latest metadata")
         directory = self.latest_directory()
         file = f"{directory}/{path}"
-        return self.read(file)
+        metadata_file = self.read(file)
+        if metadata_file is None:
+            self.dm.log.warn(f"old metadata could not be found")
+        else:
+            self.dm.log.info(f"old metadata found in {file}")
+        return metadata_file
 
 class Local(StoreInterface):
     def fs(self, refresh: bool = False) -> fsspec.implementations.local.LocalFileSystem:
@@ -241,11 +247,17 @@ class Local(StoreInterface):
             with open(metadata_path, "rt") as metadata:
                 return json.load(metadata)
         else:
-            self.dm.log.error(f"no metadata file found at {metadata_path}")
+            self.dm.log.warn(f"no metadata file found at {metadata_path}")
 
     def latest_metadata(self, path, **kwargs):
+        self.dm.log.info(f"getting latest metadata")
         last_local_output_directory = kwargs.get('last_local_output_directory')
-        return self.metadata_by_filesystem(last_local_output_directory, path=path)
+        metadata_file = self.metadata_by_filesystem(last_local_output_directory, path=path)
+        if metadata_file is None:
+            self.dm.log.warn(f"old metadata could not be found")
+        else:
+            self.dm.log.info(f"old metadata found")
+        return metadata_file
 
 
 class IPFS(StoreInterface):
@@ -428,10 +440,13 @@ class IPFS(StoreInterface):
         return directory_cid
 
     def latest_metadata(self, path, **kwargs):
+        self.dm.log.info(f"getting latest metadata")
         directory_cid = self.latest_hash()
         files = self.list_directory_files(directory_cid)
         metadata_file = next((file for file in files if file['Name'] == path), None)
         if metadata_file is None:
-            print('Metadata could not be found')
+            self.dm.log.warn(f"old metadata could not be found")
+        else:
+            self.dm.log.info(f"old metadata found in {path}")
         metadata_hash = metadata_file['Hash']
         return self.cat(metadata_hash)

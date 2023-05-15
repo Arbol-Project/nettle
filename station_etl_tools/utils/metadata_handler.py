@@ -18,11 +18,11 @@ class MetadataHandler:
         self.custom_metadata_head_path = custom_metadata_head_path
         self.store = store
 
-    def hash_url(self, hash_str, link_name=""):
-        '''
-        Return URL to a hash + optional link stored on an IPFS HTTP gateway using `self.http_root` as the gateway
-        '''
-        return f"{self.http_root}/ipfs/{hash_str}/{link_name}"
+    # def hash_url(self, hash_str, link_name=""):
+    #     '''
+    #     Return URL to a hash + optional link stored on an IPFS HTTP gateway using `self.http_root` as the gateway
+    #     '''
+    #     return f"{self.http_root}/ipfs/{hash_str}/{link_name}"
 
     @staticmethod
     def translate_latest_metadata_json_date_format_to_python_datetime(latest_metadata):
@@ -95,31 +95,31 @@ class MetadataHandler:
 
         return latest_metadata
 
-    def metadata_by_hash(self, recursive_hash, path):
-        '''
-        Look up a hash in IPFS and return the metadata.json file associated with it
-        '''
-        print('IPFS - uses ipfs handler metadata 1')
-        return self._ipfs_handler.contents_from_hash(recursive_hash, path, as_json=True)
-
-    def metadata_by_filesystem(self, root, path):
-        '''
-        Get metadata from local filesystem by passing in a root folder path
-        '''
-        metadata_path = os.path.join(root, path)
-        self._log.info(f"getting metadata from {metadata_path}")
-        if os.path.exists(metadata_path):
-            with open(metadata_path, "rt") as metadata:
-                return json.load(metadata)
-        else:
-            self._log.error(f"no metadata file found at {metadata_path}")
-
-    def metadata_by_http(self, recursive_hash, path):
-        '''
-        Connect to the IPFS HTTP API running on `self.http_root` and return the metadata file associated with the desired hash
-        '''
-        print('IPFS - uses ipfs handler metadata 2')
-        return self._ipfs_handler.contents_from_hash(recursive_hash, path, as_json=True)
+    # def metadata_by_hash(self, recursive_hash, path):
+    #     '''
+    #     Look up a hash in IPFS and return the metadata.json file associated with it
+    #     '''
+    #     print('IPFS - uses ipfs handler metadata 1')
+    #     return self._ipfs_handler.contents_from_hash(recursive_hash, path, as_json=True)
+    #
+    # def metadata_by_filesystem(self, root, path):
+    #     '''
+    #     Get metadata from local filesystem by passing in a root folder path
+    #     '''
+    #     metadata_path = os.path.join(root, path)
+    #     self._log.info(f"getting metadata from {metadata_path}")
+    #     if os.path.exists(metadata_path):
+    #         with open(metadata_path, "rt") as metadata:
+    #             return json.load(metadata)
+    #     else:
+    #         self._log.error(f"no metadata file found at {metadata_path}")
+    #
+    # def metadata_by_http(self, recursive_hash, path):
+    #     '''
+    #     Connect to the IPFS HTTP API running on `self.http_root` and return the metadata file associated with the desired hash
+    #     '''
+    #     print('IPFS - uses ipfs handler metadata 2')
+    #     return self._ipfs_handler.contents_from_hash(recursive_hash, path, as_json=True)
 
     def get_metadata_dicts(self):
         # static data dictionary which gets added
