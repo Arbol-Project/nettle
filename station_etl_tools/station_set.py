@@ -649,10 +649,3 @@ class StationSet(ABC):
         parse operation and checking newly parsed data entry-by-entry against the input files
         '''
         pass
-
-    # @classmethod
-    # def get_subclasses(cls) -> Iterator:
-    #     """Create a generator with all the subclasses and sub-subclasses of a parent class"""
-    #     for subclass in cls.__subclasses__():
-    #         yield from subclass.get_subclasses()
-    #         yield subclass

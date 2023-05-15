@@ -63,7 +63,6 @@ class IPFSIO:
             params={"arg": str(cid)},
         )
         res.raise_for_status()
-        # return res.content
         return json.loads(res.content)
 
     def ipfs_add_multiple_files_wrapping_with_directory(self, files_array):

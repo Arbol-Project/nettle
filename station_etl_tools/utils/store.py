@@ -8,7 +8,7 @@ import fsspec
 import pandas as pd
 from abc import abstractmethod, ABC
 from . import settings
-from .ipfsio import IPFSIO
+from .ipfs import IPFSIO
 
 
 class StoreInterface(ABC):
@@ -444,9 +444,9 @@ class IPFS(StoreInterface):
         directory_cid = self.latest_hash()
         files = self.list_directory_files(directory_cid)
         metadata_file = next((file for file in files if file['Name'] == path), None)
+        metadata_hash = metadata_file['Hash']
         if metadata_file is None:
             self.dm.log.warn(f"old metadata could not be found")
         else:
-            self.dm.log.info(f"old metadata found in {path}")
-        metadata_hash = metadata_file['Hash']
+            self.dm.log.info(f"old metadata found in {path} on hash {metadata_hash}")
         return self.cat(metadata_hash)

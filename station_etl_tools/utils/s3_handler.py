@@ -13,6 +13,7 @@ class S3Handler:
         if S3Handler.AWS_ACCESS_KEY is None or S3Handler.AWS_SECRET_KEY is None:
             self.log.info("AWS keys not setted. Can't connect to S3")
 
+    # move this to store
     @staticmethod
     def read_csv_from_station(path):
         if S3Handler.AWS_ACCESS_KEY is None or S3Handler.AWS_SECRET_KEY is None:
