@@ -1,10 +1,11 @@
+# from ..station_set import StationSet
+from station_etl_tools.station_set import StationSet
 import datetime
 import os
 import pandas as pd
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 from dateutil.rrule import rrule, MONTHLY
-from station_etl_tools.station_set import StationSet
 
 
 class BOM(StationSet):
@@ -111,8 +112,11 @@ class BOM(StationSet):
     # move this to station set?
     def _get_latest_hash(self):
         try:
-            return self.store.latest_hash()
-        except KeyError:
+            if self.store.name() == 'ipfs':
+                return self.store.latest_hash()
+            else:
+                return None
+        except (AttributeError, KeyError):
             return None
 
     # move this to station set?
