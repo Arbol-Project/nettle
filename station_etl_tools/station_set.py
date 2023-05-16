@@ -65,6 +65,7 @@ class StationSet(ABC):
                                         relative_path=self.name())
         self.store = store
         self.store.dm = self
+        self.store.bucket = settings.S3_STATION_BUCKET
 
         self.metadata_handler = MetadataHandler(http_root,
                                                 self.log, self.file_handler,

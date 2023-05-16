@@ -13,7 +13,7 @@ from .ipfs import IPFSIO
 
 class StoreInterface(ABC):
 
-    def __init__(self, dataset_manager):
+    def __init__(self, dataset_manager=None):
         self.dm = dataset_manager
 
     @classmethod
@@ -52,10 +52,8 @@ class StoreInterface(ABC):
 
 class S3(StoreInterface):
 
-    def __init__(self, dataset_manager, bucket: str):
+    def __init__(self, dataset_manager=None, bucket: str = ''):
         super().__init__(dataset_manager)
-        if not bucket:
-            raise ValueError("Must provide bucket name if parsing to S3")
         self.bucket = bucket
 
     def fs(self, refresh: bool = False) -> s3fs.S3FileSystem:
@@ -187,6 +185,7 @@ class S3(StoreInterface):
             self.dm.log.info(f"old metadata found in {file}")
         return metadata_file
 
+
 class Local(StoreInterface):
     def fs(self, refresh: bool = False) -> fsspec.implementations.local.LocalFileSystem:
         if refresh or not hasattr(self, "_fs"):
@@ -267,7 +266,7 @@ class IPFS(StoreInterface):
     HASH_HEADS_PATH = os.path.join(HASHES_OUTPUT_ROOT, HEADS_FILE_NAME)
     HASH_HISTORY_PATH = os.path.join(HASHES_OUTPUT_ROOT, HISTORY_FILE_NAME)
 
-    def __init__(self, dataset_manager):
+    def __init__(self, dataset_manager=None):
         super().__init__(dataset_manager)
         self.ipfs_io = IPFSIO()
 
