@@ -176,9 +176,13 @@ class S3(StoreInterface):
 
     def latest_metadata(self, path, **kwargs):
         self.dm.log.info(f"getting latest metadata")
-        directory = self.latest_directory()
-        file = f"{directory}/{path}"
-        metadata_file = self.read(file)
+        try:
+            directory = self.latest_directory()
+            file = f"{directory}/{path}"
+            metadata_file = self.read(file)
+        except IndexError:
+            metadata_file = None
+
         if metadata_file is None:
             self.dm.log.warn(f"old metadata could not be found")
         else:
