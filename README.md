@@ -65,7 +65,7 @@ perform_validation = BOM.parse(etl)
 verified = BOM.verify(etl)
 if verified:
     ipfs_store.cp_local_folder_to_remote()
-```git 
+```
 
 
 ### Retrieving your dataset 🚧🚧🚧
