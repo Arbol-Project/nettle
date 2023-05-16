@@ -26,6 +26,8 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+station_etl_tools/_version.py
+station_etl_tools.egg-info/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -130,3 +132,4 @@ dmypy.json
 
 # IDE
 .idea/
+
