@@ -49,11 +49,11 @@ Keep the terminal open as you move through the rest of the quickstart
 With the IPFS daemon up and running manager scripts using the `station_etl_tools` library can be invoked within a separate script or notebook. Note you will have to first create a functioning manager script. There is an example of how to do this in the examples/managers folder of this repo, [here](examples/etls/managers/bom.py).
 
 Example:
-```
+``` python
 import logging
 logging.getLogger('').setLevel(logging.INFO)
 s3_store = S3()
-etl = BOM2(log=logging.log, store=s3_store)
+etl = BOM(log=logging.log, store=s3_store)
 trigger_parse = update(etl)
 perform_validation = parse(etl, trigger_parse)
 verified = verify(etl, perform_validation)
