@@ -7,7 +7,7 @@ from dateutil.rrule import rrule, MONTHLY
 from station_etl_tools.station_set import StationSet
 
 
-class BOM2(StationSet):
+class BOM(StationSet):
     """
     A class for weather station data from the Australian Bureau of Meteorology (BOM)
     """
