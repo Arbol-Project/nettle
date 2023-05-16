@@ -19,6 +19,7 @@ from .utils.s3_handler import S3Handler
 from .utils.geo_json_handler import GeoJsonHandler
 from .utils.store import Local
 
+
 class StationSet(ABC):
     '''
     This is an abstract base class for data parsers. It is intended to be inherited and implemented by child classes specific to
@@ -42,7 +43,7 @@ class StationSet(ABC):
 
     def __init__(self, log=print, custom_output_path=None, custom_metadata_head_path=None,
                  custom_latest_hash=None, publish_to_ipns=False, rebuild=False, force_http=False,
-                 custom_input_path=None, http_root=settings.GATEWAY_URL, store=None
+                 custom_input_path=None, store=None
                  ):
         '''
         Set member variables to defaults. Set the libeccodes lookup path.
@@ -67,8 +68,7 @@ class StationSet(ABC):
         self.store.dm = self
         self.store.bucket = settings.S3_STATION_BUCKET
 
-        self.metadata_handler = MetadataHandler(http_root,
-                                                self.log, self.file_handler,
+        self.metadata_handler = MetadataHandler(self.log, self.file_handler,
                                                 self._correct_dict_path(),
                                                 self.name(), custom_metadata_head_path,
                                                 self.store)
@@ -76,7 +76,6 @@ class StationSet(ABC):
         self.geo_json_handler = GeoJsonHandler(self.file_handler, self.log)
         self.STATION_DICT = {}
         self.DATA_DICT = {}
-
 
     def __str__(self):
         return self.name()
@@ -128,10 +127,12 @@ class StationSet(ABC):
         whole_history_path = f'{self.name().lower()}.csv'
         specific_history_path = f'{self.name().lower()}/{station_id}.csv'
 
-        dataframe = self.s3_handler.read_csv_from_station(specific_history_path)
+        dataframe = self.s3_handler.read_csv_from_station(
+            specific_history_path)
 
         if dataframe is None:
-            dataframe = self.s3_handler.read_csv_from_station(whole_history_path)
+            dataframe = self.s3_handler.read_csv_from_station(
+                whole_history_path)
             print(
                 f"No historical data found for {station_id} specifically, using whole dataset df")
 
@@ -391,7 +392,8 @@ class StationSet(ABC):
             )
 
         local_store = Local(dataset_manager=self)
-        filepath = local_store.write(MetadataHandler.METADATA_FILE_NAME, metadata_formatted)
+        filepath = local_store.write(
+            MetadataHandler.METADATA_FILE_NAME, metadata_formatted)
         self.log.info("wrote metadata to {}".format(filepath))
 
     @staticmethod
@@ -428,7 +430,8 @@ class StationSet(ABC):
 
         self.geo_json_handler.append_features(geojson, old_stations, old_hash,
                                               self.STATION_DICT.items())
-        self.geo_json_handler.write_geojson_to_file_with_geometry_info(geojson, self, **kwargs)
+        self.geo_json_handler.write_geojson_to_file_with_geometry_info(
+            geojson, self, **kwargs)
         self.geo_json_handler.remove_geometry_from_geojson(geojson)
         self.geo_json_handler.append_stations_not_in_new_update_to_metadata(
             old_station_metadata, old_stations, geojson)
@@ -580,7 +583,7 @@ class StationSet(ABC):
         try:
             data_df = data['df']
         except KeyError:
-            self.log.error('data[\'df\'] not setted in on_parse_transform')
+            self.log.error('data[\'df\'] not set in on_parse_transform')
             return
 
         # make sure station_df is up to snuff

@@ -11,7 +11,7 @@ class S3Handler:
     def __init__(self, log):
         self.log = log
         if S3Handler.AWS_ACCESS_KEY is None or S3Handler.AWS_SECRET_KEY is None:
-            self.log.info("AWS keys not setted. Can't connect to S3")
+            self.log.info("AWS keys not set. Can't connect to S3")
 
     # move this to store
     @staticmethod
@@ -27,4 +27,3 @@ class S3Handler:
         except FileNotFoundError:
             # warning logged in StationSet get_historical_dataframe
             return None
-

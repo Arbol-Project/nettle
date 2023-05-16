@@ -7,11 +7,10 @@ class MetadataHandler:
     METADATA_FILE_NAME = "metadata.json"
     STATION_METADATA_FILE_NAME = "stations.json"
 
-    def __init__(self, http_root, log, file_handler, dict_path,
+    def __init__(self, log, file_handler, dict_path,
                  station_set_name, custom_metadata_head_path, store):
         self._log = log
         self._file_handler = file_handler
-        self.http_root = http_root
         self.dict_path = dict_path
         self.station_set_name = station_set_name
         self.custom_metadata_head_path = custom_metadata_head_path
@@ -51,7 +50,8 @@ class MetadataHandler:
         to `self.last_local_output_directory` and can be used to change the location where metadata is searched for in the case of using
         the filesystem.
         '''
-        latest_metadata = self.get_raw_latest_metadata_new_version(path, last_local_output_directory)
+        latest_metadata = self.get_raw_latest_metadata_new_version(
+            path, last_local_output_directory)
         # latest_metadata = \
         #     self.get_raw_latest_metadata(custom_metadata_head_path, force_filesystem, key, path,
         #                                  metadata_filename, station_filename, latest_hash,
