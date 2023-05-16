@@ -49,8 +49,7 @@ Keep the terminal open as you move through the rest of the quickstart
 With the IPFS daemon up and running manager scripts using the `station_etl_tools` library can be invoked within a separate script or notebook. Note you will have to first create a functioning manager script. There is an example of how to do this in the examples/managers folder of this repo, [here](examples/etls/managers/bom.py).
 
 1) Copy the `etls` from this repo to a clean directory where you want to run your ETLs
-2) Create a folder called `climate` inside this `etls` folder
-3) Then copy and paste the below code in to a file at the same levels as `managers`, `static` and `climate` and run it!
+2) Then copy and paste the below code in to a file at the same levels as `managers`, `static` and `climate` and run it!
 
 ``` python
 from etls.managers.bom import BOM
@@ -66,7 +65,7 @@ perform_validation = BOM.parse(etl)
 verified = BOM.verify(etl)
 if verified:
     ipfs_store.cp_local_folder_to_remote()
-```
+```git 
 
 
 ### Retrieving your dataset 🚧🚧🚧
