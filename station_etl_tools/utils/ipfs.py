@@ -5,8 +5,6 @@ import json
 from multiformats import multicodec, multihash
 from requests.adapters import HTTPAdapter, Retry
 
-# Base methods
-
 
 class IPFSIO:
     """
@@ -116,7 +114,6 @@ class IPFSIO:
             params={"arg": str(cid)},
         )
         res.raise_for_status()
-        # return res.content
         return dag_cbor.decode(res.content)
 
     def ipns_retrieve_object(self, key: str) -> tuple[dict, str, str] | None:
@@ -238,9 +235,3 @@ class IPFSIO:
         session.mount("http://", HTTPAdapter(max_retries=retries))
         return session
 
-
-if __name__ == "__main__":
-    ip = IPFSIO()
-    files = [open('file.txt', 'rb'), open('file2.txt', 'rb')]
-    # ip.ipfs_add()
-    ip.ipfs_add_multiple_files_wrapping_with_directory(files)
