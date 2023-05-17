@@ -67,12 +67,19 @@ from station_etl_tools.utils.store import Local, S3, IPFS
 from station_etl_tools.utils import settings
 import logging
 
+# set logs
 logging.getLogger('').setLevel(logging.INFO)
+# set desired store
 ipfs_store = IPFS()
+# instantiate ETL, BOM in this case
 etl = BOM(log=logging.log, store=ipfs_store)
+# update_local_input returns False is it cannot connect/can't find new data
 trigger_parse = BOM.update_local_input(etl)
+# parse returns True if there was newdata to add to your existing set
 perform_validation = BOM.parse(etl)
+# verify your output to see if it's all in the correct format
 verified = BOM.verify(etl)
+# if verified, add to IPFS
 if verified:
     ipfs_store.cp_local_folder_to_remote()
 ```
@@ -80,7 +87,35 @@ if verified:
 
 #### S3 Example
 ``` python
-print('DOES NOT EXIST YET, ALISSON TO ADD')
+import sys
+import logging
+from managers.bom import BOM as BOM
+from station_etl_tools.utils.store import Local, S3, IPFS
+from station_etl_tools.utils import settings
+
+# set logs
+logging.getLogger('').setLevel(logging.INFO)
+# set desired store
+s3_store = S3(BOM, bucket=settings.S3_STATION_BUCKET)
+# instantiate ETL, in this case our example is BOM
+etl = BOM(log=logging.log, store=s3_store)
+
+# Update our local input, will output False if there's no new data at all
+should_parse = etl.update_local_input()
+
+if should_parse:
+    # parse, returns True if new data found
+    should_verify = etl.parse()
+    # if parse returned false, no new data to add
+    if not should_verify:
+        print("no new data parsed, ending here")
+        sys.exit()
+    else:
+        print("performing verification on {}".format(etl))
+        # returns True if verification successful
+        if etl.verify():
+            # copy files to s3 destination
+            s3_store.cp_local_folder_to_remote()
 ```
 
 
