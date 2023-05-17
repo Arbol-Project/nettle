@@ -46,7 +46,7 @@ class StationSet(ABC):
                  custom_input_path=None, store=None
                  ):
         '''
-        Set member variables to defaults. Set the libeccodes lookup path.
+        Set member variables to defaults.
         '''
         self.new_files = []
         self.log = LogInfo(log, self.name())

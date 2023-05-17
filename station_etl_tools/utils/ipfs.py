@@ -7,6 +7,7 @@ from requests.adapters import HTTPAdapter, Retry
 
 # Base methods
 
+
 class IPFSIO:
     """
     Methods to be inherited by a DatasetManager that needs to instantiate and interact with an IPFS client
@@ -88,7 +89,8 @@ class IPFSIO:
         res.raise_for_status()
         resp = res.text.replace('\n', ',')
         resp_files_list = json.loads(f"[{resp.rsplit(',', 1)[0]}]")
-        directory_dict = next((x for x in resp_files_list if x['Name'] == ''), None)
+        directory_dict = next(
+            (x for x in resp_files_list if x['Name'] == ''), None)
         if directory_dict is None:
             raise Exception('Could not create directory')
 
@@ -236,9 +238,9 @@ class IPFSIO:
         session.mount("http://", HTTPAdapter(max_retries=retries))
         return session
 
+
 if __name__ == "__main__":
     ip = IPFSIO()
-    # ip.ipfs_ls("QmbZfhbeCsgNj6dyGWYUAbieundG8jhN6e5V5ZejMbDZs6")
     files = [open('file.txt', 'rb'), open('file2.txt', 'rb')]
     # ip.ipfs_add()
     ip.ipfs_add_multiple_files_wrapping_with_directory(files)

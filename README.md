@@ -19,7 +19,7 @@ This repository provides a workflow for building climate data ETLs that output t
 
 Users of this library should build ETLS for a desired non-gridded climate dataset by importing the library within an ETL manager script, using the `StationSet` class from [StationSet](station_etl_tools/station_set.py) as a base class, then applying its standardized workflow to the climate dataset in question. ETL child classes will need to overload one or many parent properties or methods from the [utils](station_etl_tools/utils) directory; the exact number depends on the intricacies of how the raw climate data is packaged. Where anticipated these methods are marked as **@abstractmethod** to prompt the user.
 
-Users of this library can run the ETLs they build on the command line or within a notebook environment, as described below in [quickstart](#quickstart), When run, an ETL will first download raw data to a **datasets** directory and later output finalized data to a **climate** directory, creating either directory if they don't yet exist.
+Users of this library can run the ETLs they build on the command line or within a notebook environment, as described below in [quickstart](#quickstart), When run, an ETL will first download raw data to a **raw_data** directory and later output finalized data to a **processed_data** directory, creating either directory if they don't yet exist.
 
 ![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png)
 
@@ -61,7 +61,7 @@ With the IPFS daemon up and running manager scripts using the `station_etl_tools
 
 
 1) Copy the `etls` folder from this repo to a clean directory where you want to run your ETLs
-2) Then copy and paste the below code in to a file at the same levels as `managers`, `static` and `climate` and run it!
+2) Then copy and paste the below code in to a file at the same levels as `managers`, `static` and `processed_data` and run it!
 
 
 #### IPFS Example
@@ -125,7 +125,7 @@ if should_parse:
 
 ### Retrieving your dataset 🚧🚧🚧
 #### IPFS:
-Check climate/hashes/heads.json for your most recent file and run
+Check processed_data/hashes/heads.json for your most recent file and run
 ```
 ipfs cat <hash>/<filename>
 ```
