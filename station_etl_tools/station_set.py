@@ -15,7 +15,7 @@ from .utils.log_info import LogInfo
 from .utils.file_handler import FileHandler
 from .utils.metadata_handler import MetadataHandler
 from .utils.date_handler import DateHandler
-from .utils.s3_handler import S3Handler
+# from .utils.s3_handler import S3Handler
 from .utils.geo_json_handler import GeoJsonHandler
 from .utils.store import Local
 
@@ -66,13 +66,12 @@ class StationSet(ABC):
                                         relative_path=self.name())
         self.store = store
         self.store.dm = self
-        self.store.bucket = settings.S3_STATION_BUCKET
 
         self.metadata_handler = MetadataHandler(self.log, self.file_handler,
                                                 self._correct_dict_path(),
                                                 self.name(), custom_metadata_head_path,
                                                 self.store)
-        self.s3_handler = S3Handler(self.log)
+
         self.geo_json_handler = GeoJsonHandler(self.file_handler, self.log)
         self.STATION_DICT = {}
         self.DATA_DICT = {}
@@ -127,11 +126,11 @@ class StationSet(ABC):
         whole_history_path = f'{self.name().lower()}.csv'
         specific_history_path = f'{self.name().lower()}/{station_id}.csv'
 
-        dataframe = self.s3_handler.read_csv_from_station(
+        dataframe = self.store.read_csv_from_station(
             specific_history_path)
 
         if dataframe is None:
-            dataframe = self.s3_handler.read_csv_from_station(
+            dataframe = self.store.read_csv_from_station(
                 whole_history_path)
             print(
                 f"No historical data found for {station_id} specifically, using whole dataset df")
