@@ -1,5 +1,5 @@
 <p align="center"> 
-  <img src='docs/static/arbol.png'></img>
+  <img src='docs/static/arbol.svg'></img>
 </p>
 <h1 align="center"> station-climate-etl-ipfs </h1>
 
