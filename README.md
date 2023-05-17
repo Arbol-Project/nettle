@@ -48,11 +48,15 @@ Once the library and an IPFS node are installed, instantiate an IPFS daemon. Ope
 Keep the terminal open as you move through the rest of the quickstart
 
 
-#### S3 users 🚧🚧🚧
-Add your credentials to a file somewhere, Alisson has more details
+#### S3 users
+We recommend adding the following lines to a .bashrc file or equivalent
+
+    export S3_STATION_BUCKET={your_bucket}
+    export AWS_ACCESS_KEY={your_access_key}
+    export AWS_SECRET_KEY={your_secret_key}
 
 
-### Running the ETL 🚧🚧🚧
+### Running the ETL
 With the IPFS daemon up and running manager scripts using the `station_etl_tools` library can be invoked within a separate script or notebook. Note you will have to first create a functioning manager script. There is an example of how to do this in the examples/managers folder of this repo [here](examples/etls/managers/bom.py).
 
 
