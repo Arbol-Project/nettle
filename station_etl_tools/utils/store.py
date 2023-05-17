@@ -6,6 +6,7 @@ import json
 import s3fs
 import fsspec
 import pandas as pd
+from botocore.session import Session
 from abc import abstractmethod, ABC
 from . import settings
 from .ipfs import IPFSIO
@@ -23,19 +24,9 @@ class StoreInterface(ABC):
         '''
         return f"{cls.__name__}".lower()
 
-    # @abstractmethod
-    # def mapper(self, **kwargs: dict) -> collections.abc.MutableMapping:
-    #     pass
-
     @abstractmethod
     def has_existing_file(self, station_id) -> bool:
         pass
-
-    # def dataset(self, **kwargs: dict) -> xr.Dataset | None:
-    #     if self.has_existing:
-    #         return xr.open_zarr(self.mapper(**kwargs))
-    #     else:
-    #         return None
 
     @abstractmethod
     def write(self, file_name: str, content, encoding, **kwargs):
@@ -49,22 +40,30 @@ class StoreInterface(ABC):
     def latest_metadata(self, path, **kwargs):
         pass
 
+    @abstractmethod
+    def read_csv_from_station(self, path, **kwargs):
+        pass
+
 
 class S3(StoreInterface):
 
-    def __init__(self, dataset_manager=None, bucket: str = ''):
+    def __init__(self,
+                 dataset_manager=None,
+                 bucket: str = '',
+                 credentials_name: str = ''):
         super().__init__(dataset_manager)
         self.bucket = bucket
+        self.creds = Session(profile=credentials_name).get_credentials()
 
     def fs(self, refresh: bool = False) -> s3fs.S3FileSystem:
         if refresh or not hasattr(self, "_fs"):
             try:
                 self._fs = s3fs.S3FileSystem(
-                    key=settings.AWS_ACCESS_KEY,
-                    secret=settings.AWS_SECRET_KEY
+                    key=self.creds.access_key,
+                    secret=self.creds.secret_key
                     )
             except KeyError:  # KeyError indicates credentials have not been manually specified
-                self._fs = s3fs.S3FileSystem()  # credentials automatically supplied from ~/.aws/credentials
+                self.dm.log.error("S3 credentials not set")
             self.dm.log.info("Connected to S3 filesystem")
         return self._fs
 
@@ -100,11 +99,6 @@ class S3(StoreInterface):
     def __str__(self) -> str:
         return self.folder_url
 
-    # def mapper(self, refresh: bool = False, **kwargs: dict) -> fsspec.mapping.FSMap:
-    #     if refresh or not hasattr(self, "_mapper"):
-    #         self._mapper = s3fs.S3Map(root=self.url, s3=self.fs())
-    #     return self._mapper
-
     def has_existing_file_in_dm_folder(self, file_name) -> bool:
         return self.fs().exists(self.file_outpath(file_name))
 
@@ -123,9 +117,11 @@ class S3(StoreInterface):
             return False
 
         try:
-            return filesystem.put(local_path, s3_path, recursive=True)
+            filesystem.put(local_path, s3_path, recursive=True)
+            return s3_path
         except IOError as e:
-            self.dm.log.error("I/O error({0}): {1}".format(e.errno, e.strerror))
+            self.dm.log.error("I/O error({0}): {1}. local_path: {2} s3_path: {3}"
+                              .format(e.errno, e.strerror, local_path, s3_path))
             raise e
         except Exception as e:
             self.dm.log.error("Unexpected error writing station file")
@@ -189,17 +185,26 @@ class S3(StoreInterface):
             self.dm.log.info(f"old metadata found in {file}")
         return metadata_file
 
+    # Maybe refactor this to read csv a different way?
+    def read_csv_from_station(self, path, **kwargs):
+        if self.creds.access_key is None or self.creds.secret_key is None:
+            return
+
+        path = f'{self.bucket}/{path}'
+        try:
+            csv = pd.read_csv(path, storage_options={
+                "key": self.creds.access_key, "secret": self.creds.secret_key})
+            return csv
+        except FileNotFoundError:
+            # warning logged in StationSet get_historical_dataframe
+            return None
+
 
 class Local(StoreInterface):
     def fs(self, refresh: bool = False) -> fsspec.implementations.local.LocalFileSystem:
         if refresh or not hasattr(self, "_fs"):
             self._fs = fsspec.filesystem("file")
         return self._fs
-
-    # def mapper(self, refresh=False, **kwargs) -> fsspec.mapping.FSMap:
-    #     if refresh or not hasattr(self, "_mapper"):
-    #         self._mapper = self.fs().get_mapper(self.path)
-    #     return self._mapper
 
     def __str__(self) -> str:
         return str(self.folder_path)
@@ -261,6 +266,10 @@ class Local(StoreInterface):
         else:
             self.dm.log.info(f"old metadata found")
         return metadata_file
+
+    def read_csv_from_station(self, path, **kwargs):
+        # ToDo: Read this file locally
+        return None
 
 
 class IPFS(StoreInterface):
@@ -453,3 +462,8 @@ class IPFS(StoreInterface):
         else:
             self.dm.log.info(f"old metadata found in {path} on hash {metadata_hash}")
         return self.cat(metadata_hash)
+
+    def read_csv_from_station(self, path, **kwargs):
+        # ToDo: Read this file in IPFS
+        return None
+
