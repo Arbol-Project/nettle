@@ -13,3 +13,6 @@ S3_STATION_BUCKET = os.environ.get("S3_STATION_BUCKET")
 LOCAL_INPUT_ROOT = os.path.join(os.getcwd(), "raw_data")
 OUTPUT_ROOT = os.path.join(os.getcwd(), "processed_data")
 HASHES_OUTPUT_ROOT = os.path.join(OUTPUT_ROOT, "hashes")
+
+# Env is dev, prod, hmg?
+APP_MODE = os.environ.get('APP_MODE', 'dev')
