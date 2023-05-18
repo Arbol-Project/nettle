@@ -89,7 +89,9 @@ class StationSet(ABC):
         return hash(str(self))
 
     def _correct_dict_path(self):
-        return os.path.join(os.getcwd(), "etls")
+        # changing this for testing
+        # return os.path.join(os.getcwd(), "etls")
+        return os.path.join(os.getcwd())
 
     def rebuild_requested(self):
         '''
