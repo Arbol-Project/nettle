@@ -49,11 +49,11 @@ Keep the terminal open as you move through the rest of the quickstart
 
 
 #### S3 users
-We recommend adding the following lines to a .bashrc file or equivalent
+We recommend adding the following lines to your ~/.aws/credentials file. `default` is the name you give for your given creds, you will need it later as seen in our s3 example.
 
-    export S3_STATION_BUCKET={your_bucket}
-    export AWS_ACCESS_KEY={your_access_key}
-    export AWS_SECRET_KEY={your_secret_key}
+    [default]
+    aws_access_key_id =
+    aws_secret_access_key =
 
 
 ### Running the ETL
@@ -99,8 +99,8 @@ from station_etl_tools.utils import settings
 
 # set logs
 logging.getLogger('').setLevel(logging.INFO)
-# set desired store
-s3_store = S3(BOM, bucket=settings.S3_STATION_BUCKET)
+# set desired store using s3 profile from earlier and your bucket name
+s3_store = S3(BOM, bucket='<bucket name>', credentials_name='default')
 # instantiate ETL, in this case our example is BOM
 etl = BOM(log=logging.log, store=s3_store)
 
