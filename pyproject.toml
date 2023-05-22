@@ -7,7 +7,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "station_etl_tools"
+name = "nettle"
 version = "0.0.1"
 authors = [
     { name = "Alisson Pinto", email = "alisson.pinto@clevertech.biz" },
@@ -29,12 +29,12 @@ classifiers = [
 ]
 
 [tool.setuptools]
-packages=['station_etl_tools', 'station_etl_tools.utils']
+packages=['nettle', 'nettle.utils']
 
 [tool.setuptools_scm]
 version_scheme = "post-release"
 local_scheme = "no-local-version"
-write_to = "station_etl_tools/_version.py"
+write_to = "nettle/_version.py"
 
 [project.urls]
 Homepage = "https://arbol.io/"

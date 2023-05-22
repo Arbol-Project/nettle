@@ -55,11 +55,11 @@ class GeoJsonHandler:
             old_stations.remove(station_id)
 
     @staticmethod
-    def base_properties(station_id):
+    def init_station_properties_dict(station_id):
         return {"station name": station_id}
 
     def get_properties(self, station_id, old_stations, old_hash, value):
-        properties = self.base_properties(station_id)
+        properties = self.init_station_properties_dict(station_id)
         self.set_previous_hash(station_id, old_stations, old_hash, properties)
 
         for value_key in value:
