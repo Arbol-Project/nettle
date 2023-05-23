@@ -41,9 +41,17 @@ class StationSet(ABC):
     HASH_HISTORY_PATH = os.path.join(HASHES_OUTPUT_ROOT, HISTORY_FILE_NAME)
     ### END CONSIDER REMOVING ###
 
-    def __init__(self, log=print, custom_output_path=None, custom_metadata_head_path=None,
-                 custom_latest_hash=None, publish_to_ipns=False, rebuild=False, force_http=False,
-                 custom_input_path=None, store=None
+    def __init__(self,
+                 log=print,
+                 custom_output_path=None,
+                 custom_metadata_head_path=None,
+                 custom_latest_hash=None,
+                 publish_to_ipns=False,
+                 rebuild=False,
+                 force_http=False,
+                 custom_input_path=None,
+                 store=None,
+                 custom_dict_path=None
                  ):
         '''
         Set member variables to defaults.
@@ -56,6 +64,7 @@ class StationSet(ABC):
         self.metadata = None
         self.rebuild = rebuild
         self.custom_output_path = custom_output_path
+        self.custom_dict_path = custom_dict_path
         # Establish date today just incase etl runs over midnight
         self.today_with_time = datetime.datetime.now()
 
@@ -91,7 +100,10 @@ class StationSet(ABC):
     def _correct_dict_path(self):
         # changing this for testing
         # return os.path.join(os.getcwd(), "etls")
-        return os.path.join(os.getcwd())
+        if self.custom_dict_path:
+            return self.custom_dict_path
+        else:
+            return os.path.join(os.getcwd())
 
     def rebuild_requested(self):
         '''
