@@ -462,11 +462,17 @@ class StationSet(ABC):
         # Should we move this to __init in StationSet?
         self.DATA_DICT, self.STATION_DICT = self.metadata_handler.get_metadata_dicts()
 
-        # pull the old station metadata and use it to update date ranges on a station by station basis
-        self.update_date_ranges_in_station_dict()
-        return {
-            'stations_ids': self.get_station_ids()
-        }
+        if self.DATA_DICT is None:
+            self.log.info('No data dictionary found')
+
+        if self.STATION_DICT is None:
+            self.log.info('No station dictionary found')
+        else:
+            # pull the old station metadata and use it to update date ranges on a station by station basis
+            self.update_date_ranges_in_station_dict()
+            return {
+                'stations_ids': self.get_station_ids()
+            }
 
     @abstractmethod
     def on_update_prepare_initial_data(self, initial_data, **kwargs):
