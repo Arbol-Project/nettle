@@ -389,7 +389,7 @@ class StationSet(ABC):
         filepath = local_store.write(file_name, station_df)
         self.log.info("wrote station file to {}".format(filepath))
 
-    def write_metadata(self, **kwargs):
+    def write_metadata(self, data, **kwargs):
         '''
         Write a JSON file containing the metadata dict to the output path as `self.METADATA_FILE_NAME`. If the 'date range' field
         is a datetime object, it will be written as iso format in the JSON file. 'final through' will also be converted
@@ -433,7 +433,7 @@ class StationSet(ABC):
 
         return old_station_metadata, old_stations, old_hash
 
-    def station_metadata_to_geojson(self, **kwargs):
+    def station_metadata_to_geojson(self, data, **kwargs):
         '''
         Take the station metadata self.STATION_DICT and convert it to valid geojson
         '''
@@ -634,10 +634,10 @@ class StationSet(ABC):
         self.write_station_file(station_id, station_df=data['df'], **kwargs)
 
     @abstractmethod
-    def on_parse_verify(self, **kwargs):
+    def on_parse_verify(self, data, **kwargs):
         pass
 
-    def parse_verify(self, **kwargs):
+    def parse_verify(self, data, **kwargs):
         # data = self.before_parse_verify(**kwargs)
         data = self.on_parse_verify(**kwargs)
         # data = self.after_parse_verify(**kwargs)
@@ -658,9 +658,9 @@ class StationSet(ABC):
             self.log.info(
                 f'Station_id={station_id} Time=\033[93m{(t2 - t1):.2f}\033[0m')
 
-        self.write_metadata(**kwargs)  # write metadata.json
-        self.station_metadata_to_geojson(**kwargs)  # write stations.json
-        return self.parse_verify(**kwargs)
+        self.write_metadata(data, **kwargs)  # write metadata.json
+        self.station_metadata_to_geojson(data, **kwargs)  # write stations.json
+        return self.parse_verify(data, **kwargs)
 
     # is this necessary? I'm tagging this to remove
     # should add to our station-climate-etl-ipfs roadmap
