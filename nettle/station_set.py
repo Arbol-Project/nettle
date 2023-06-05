@@ -341,7 +341,8 @@ class StationSet(ABC):
     def _get_date_range_from_station_df(station_df):
         return [station_df['dt'].min().isoformat(), station_df['dt'].max().isoformat()]
 
-    def _change_metadata_date_range(self, date_range):
+    def _change_metadata_date_range(self, station_id):
+        date_range = self.STATION_DICT[station_id]["date range"]
         if "date range" not in self.metadata:
             self.metadata["date range"] = date_range
         else:
@@ -365,9 +366,6 @@ class StationSet(ABC):
         variables = self._get_sorted_columns_in_dict_from_station_df(
             station_df)
 
-        self._change_metadata_date_range(date_range)
-
-        # this doesnt seem to do anything
         self.STATION_DICT[station_id]["file name"] = f"{station_id}.csv"
         self.STATION_DICT[station_id]["date range"] = date_range
         self.STATION_DICT[station_id]["variables"] = variables
@@ -564,9 +562,10 @@ class StationSet(ABC):
         # All stations are up to date, no need to update so return False
         return self.update_verify(data)
 
-    @staticmethod
-    def before_parse_initial_data(**kwargs):
-        return {}
+    def before_parse_initial_data(self, **kwargs):
+        return {
+                'stations_ids': self.get_station_ids()
+            }
 
     @abstractmethod
     def on_parse_initial_data(self, data, **kwargs):
@@ -627,6 +626,7 @@ class StationSet(ABC):
             return
 
         self.write_info_in_station_dict(station_id, station_df)
+        self._change_metadata_date_range(station_id)
         self.load_verify(station_id, station_df)
 
         self.file_handler.create_output_path()
@@ -649,7 +649,7 @@ class StationSet(ABC):
         formats and writes all metadata
         """
         data = self.parse_initial_data(**kwargs)
-        for station_id in self.STATION_DICT.keys():
+        for station_id in data['stations_ids']:
             t1 = time.time()
             self.parse_extract(station_id, data, **kwargs)
             self.parse_transform(station_id, data, **kwargs)
