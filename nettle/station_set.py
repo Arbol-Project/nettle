@@ -638,9 +638,9 @@ class StationSet(ABC):
         pass
 
     def parse_verify(self, data, **kwargs):
-        # data = self.before_parse_verify(**kwargs)
-        data = self.on_parse_verify(**kwargs)
-        # data = self.after_parse_verify(**kwargs)
+        # data = self.before_parse_verify(data, **kwargs)
+        data = self.on_parse_verify(data, **kwargs)
+        # data = self.after_parse_verify(data, **kwargs)
         return data
 
     def parse(self, **kwargs):
