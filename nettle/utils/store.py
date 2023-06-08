@@ -105,7 +105,7 @@ class S3(StoreInterface):
 
     @property
     def folder_url_without_s3(self):
-        return f"{self.bucket}/datasets/"
+        return f"{self.bucket}/"
 
     def __str__(self) -> str:
         return self.folder_url
