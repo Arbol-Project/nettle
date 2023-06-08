@@ -352,14 +352,20 @@ class StationSet(ABC):
                 self.metadata["date range"][1], date_range[1])
 
     def _get_sorted_columns_in_dict_from_station_df(self, station_df):
-        variables = []
+        variables = {}
         for key, value in self.DATA_DICT.items():
             if value["column name"] in list(station_df.columns):
-                variables.append(key)
-        variables.sort()
+                variables[key] = value
+        # variables.sort()
         return variables
 
-    def write_info_in_station_dict(self, station_id, station_df):
+    def write_info_in_station_dict(self, station_id, data):
+        try:
+            station_df = data['df']
+        except KeyError as e:
+            message = 'data[\'df\'] not setted in on_parse_transform'
+            self.log.error(message)
+            raise e
         # use the date range for each station to change the overall metadata.json date range
         date_range = self._get_date_range_from_station_df(station_df)
         # get the columns in each file, raise an exception if you can't find them all in the data dict
@@ -370,12 +376,14 @@ class StationSet(ABC):
         self.STATION_DICT[station_id]["date range"] = date_range
         self.STATION_DICT[station_id]["variables"] = variables
 
-    def load_verify(self, station_id, station_df, **kwargs):
+    def load_verify(self, station_id, data, **kwargs):
+        station_df = data['df']
         variables = self.STATION_DICT[station_id]["variables"]
 
         if len(variables) != len(station_df.columns):
             raise Exception(
-                f"There are {len(station_df.columns)} column(s) in your dataframe being published but only {len(variables)} column(s) could be found in the data dictionary, please investigate")
+                f"There are {len(station_df.columns)} column(s) in your dataframe being published but "
+                f"only {len(variables)} column(s) could be found in the data dictionary, please investigate")
 
     def write_station_file(self, station_id, station_df, **kwargs):
         '''
@@ -619,15 +627,9 @@ class StationSet(ABC):
         self.after_parse_load(station_id, data, **kwargs)
 
     def after_parse_load(self, station_id, data, **kwargs):
-        try:
-            station_df = data['df']
-        except KeyError:
-            self.log.error('data[\'df\'] not setted in on_parse_transform')
-            return
-
-        self.write_info_in_station_dict(station_id, station_df)
+        self.write_info_in_station_dict(station_id, data)
         self._change_metadata_date_range(station_id)
-        self.load_verify(station_id, station_df)
+        self.load_verify(station_id, data)
 
         self.file_handler.create_output_path()
         # write file and extract important metadata
