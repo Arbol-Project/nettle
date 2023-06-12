@@ -47,13 +47,20 @@ class StoreInterface(ABC):
 
 class S3(StoreInterface):
 
-    def __init__(self,
-                 dataset_manager=None,
-                 bucket: str = '',
-                 credentials_name: str = ''):
+    def __init__(
+            self,
+            dataset_manager=None,
+            bucket: str = '',
+            credentials_name: str = '',
+            custom_dm_name: str = '',
+            custom_latest_metadata_path: str = ''
+    ):
+
         super().__init__(dataset_manager)
         self.bucket = bucket
         self.creds = Session(profile=credentials_name).get_credentials()
+        self.custom_dm_name = custom_dm_name
+        self.custom_latest_metadata_path = custom_latest_metadata_path
 
     def fs(self, refresh: bool = False) -> s3fs.S3FileSystem:
         if refresh or not hasattr(self, "_fs"):
@@ -81,7 +88,11 @@ class S3(StoreInterface):
         )
 
     def latest_directory(self):
-        path = os.path.join(f"{self.folder_url_without_s3}", self.dm.name())
+        if self.custom_dm_name:
+            folder_name = self.custom_dm_name
+        else:
+            folder_name = self.dm.name()
+        path = os.path.join(f"{self.folder_url_without_s3}", folder_name)
         directories = self.list_directory(path)
         return sorted(directories)[-1]
 
@@ -94,7 +105,7 @@ class S3(StoreInterface):
 
     @property
     def folder_url_without_s3(self):
-        return f"{self.bucket}/datasets/"
+        return f"{self.bucket}/"
 
     def __str__(self) -> str:
         return self.folder_url
@@ -173,7 +184,10 @@ class S3(StoreInterface):
     def latest_metadata(self, path, **kwargs):
         self.dm.log.info(f"getting latest metadata")
         try:
-            directory = self.latest_directory()
+            if self.custom_latest_metadata_path:
+                directory = self.custom_latest_metadata_path
+            else:
+                directory = self.latest_directory()
             file = f"{directory}/{path}"
             metadata_file = self.read(file)
         except IndexError:

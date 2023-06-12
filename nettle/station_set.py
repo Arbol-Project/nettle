@@ -341,7 +341,8 @@ class StationSet(ABC):
     def _get_date_range_from_station_df(station_df):
         return [station_df['dt'].min().isoformat(), station_df['dt'].max().isoformat()]
 
-    def _change_metadata_date_range(self, date_range):
+    def _change_metadata_date_range(self, station_id):
+        date_range = self.STATION_DICT[station_id]["date range"]
         if "date range" not in self.metadata:
             self.metadata["date range"] = date_range
         else:
@@ -351,33 +352,38 @@ class StationSet(ABC):
                 self.metadata["date range"][1], date_range[1])
 
     def _get_sorted_columns_in_dict_from_station_df(self, station_df):
-        variables = []
+        variables = {}
         for key, value in self.DATA_DICT.items():
             if value["column name"] in list(station_df.columns):
-                variables.append(key)
-        variables.sort()
+                variables[key] = value
+        # variables.sort()
         return variables
 
-    def write_info_in_station_dict(self, station_id, station_df):
+    def write_info_in_station_dict(self, station_id, data):
+        try:
+            station_df = data['df']
+        except KeyError as e:
+            message = 'data[\'df\'] not setted in on_parse_transform'
+            self.log.error(message)
+            raise e
         # use the date range for each station to change the overall metadata.json date range
         date_range = self._get_date_range_from_station_df(station_df)
         # get the columns in each file, raise an exception if you can't find them all in the data dict
         variables = self._get_sorted_columns_in_dict_from_station_df(
             station_df)
 
-        self._change_metadata_date_range(date_range)
-
-        # this doesnt seem to do anything
         self.STATION_DICT[station_id]["file name"] = f"{station_id}.csv"
         self.STATION_DICT[station_id]["date range"] = date_range
         self.STATION_DICT[station_id]["variables"] = variables
 
-    def load_verify(self, station_id, station_df, **kwargs):
+    def load_verify(self, station_id, data, **kwargs):
+        station_df = data['df']
         variables = self.STATION_DICT[station_id]["variables"]
 
         if len(variables) != len(station_df.columns):
             raise Exception(
-                f"There are {len(station_df.columns)} column(s) in your dataframe being published but only {len(variables)} column(s) could be found in the data dictionary, please investigate")
+                f"There are {len(station_df.columns)} column(s) in your dataframe being published but "
+                f"only {len(variables)} column(s) could be found in the data dictionary, please investigate")
 
     def write_station_file(self, station_id, station_df, **kwargs):
         '''
@@ -389,7 +395,7 @@ class StationSet(ABC):
         filepath = local_store.write(file_name, station_df)
         self.log.info("wrote station file to {}".format(filepath))
 
-    def write_metadata(self, **kwargs):
+    def write_metadata(self, data, **kwargs):
         '''
         Write a JSON file containing the metadata dict to the output path as `self.METADATA_FILE_NAME`. If the 'date range' field
         is a datetime object, it will be written as iso format in the JSON file. 'final through' will also be converted
@@ -433,7 +439,7 @@ class StationSet(ABC):
 
         return old_station_metadata, old_stations, old_hash
 
-    def station_metadata_to_geojson(self, **kwargs):
+    def station_metadata_to_geojson(self, data, **kwargs):
         '''
         Take the station metadata self.STATION_DICT and convert it to valid geojson
         '''
@@ -462,11 +468,17 @@ class StationSet(ABC):
         # Should we move this to __init in StationSet?
         self.DATA_DICT, self.STATION_DICT = self.metadata_handler.get_metadata_dicts()
 
-        # pull the old station metadata and use it to update date ranges on a station by station basis
-        self.update_date_ranges_in_station_dict()
-        return {
-            'stations_ids': self.get_station_ids()
-        }
+        if self.DATA_DICT is None:
+            self.log.info('No data dictionary found')
+
+        if self.STATION_DICT is None:
+            self.log.info('No station dictionary found')
+        else:
+            # pull the old station metadata and use it to update date ranges on a station by station basis
+            self.update_date_ranges_in_station_dict()
+            return {
+                'stations_ids': self.get_station_ids()
+            }
 
     @abstractmethod
     def on_update_prepare_initial_data(self, initial_data, **kwargs):
@@ -558,9 +570,10 @@ class StationSet(ABC):
         # All stations are up to date, no need to update so return False
         return self.update_verify(data)
 
-    @staticmethod
-    def before_parse_initial_data(**kwargs):
-        return {}
+    def before_parse_initial_data(self, **kwargs):
+        return {
+                'stations_ids': self.get_station_ids()
+            }
 
     @abstractmethod
     def on_parse_initial_data(self, data, **kwargs):
@@ -614,27 +627,22 @@ class StationSet(ABC):
         self.after_parse_load(station_id, data, **kwargs)
 
     def after_parse_load(self, station_id, data, **kwargs):
-        try:
-            station_df = data['df']
-        except KeyError:
-            self.log.error('data[\'df\'] not setted in on_parse_transform')
-            return
-
-        self.write_info_in_station_dict(station_id, station_df)
-        self.load_verify(station_id, station_df)
+        self.write_info_in_station_dict(station_id, data)
+        self._change_metadata_date_range(station_id)
+        self.load_verify(station_id, data)
 
         self.file_handler.create_output_path()
         # write file and extract important metadata
         self.write_station_file(station_id, station_df=data['df'], **kwargs)
 
     @abstractmethod
-    def on_parse_verify(self, **kwargs):
+    def on_parse_verify(self, data, **kwargs):
         pass
 
-    def parse_verify(self, **kwargs):
-        # data = self.before_parse_verify(**kwargs)
-        data = self.on_parse_verify(**kwargs)
-        # data = self.after_parse_verify(**kwargs)
+    def parse_verify(self, data, **kwargs):
+        # data = self.before_parse_verify(data, **kwargs)
+        data = self.on_parse_verify(data, **kwargs)
+        # data = self.after_parse_verify(data, **kwargs)
         return data
 
     def parse(self, **kwargs):
@@ -643,7 +651,7 @@ class StationSet(ABC):
         formats and writes all metadata
         """
         data = self.parse_initial_data(**kwargs)
-        for station_id in self.STATION_DICT.keys():
+        for station_id in data['stations_ids']:
             t1 = time.time()
             self.parse_extract(station_id, data, **kwargs)
             self.parse_transform(station_id, data, **kwargs)
@@ -652,9 +660,9 @@ class StationSet(ABC):
             self.log.info(
                 f'Station_id={station_id} Time=\033[93m{(t2 - t1):.2f}\033[0m')
 
-        self.write_metadata(**kwargs)  # write metadata.json
-        self.station_metadata_to_geojson(**kwargs)  # write stations.json
-        return self.parse_verify(**kwargs)
+        self.write_metadata(data, **kwargs)  # write metadata.json
+        self.station_metadata_to_geojson(data, **kwargs)  # write stations.json
+        return self.parse_verify(data, **kwargs)
 
     # is this necessary? I'm tagging this to remove
     # should add to our station-climate-etl-ipfs roadmap
