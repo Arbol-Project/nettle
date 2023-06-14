@@ -9,6 +9,7 @@ import datetime
 import os
 import pandas as pd
 import time
+import copy
 from collections.abc import Iterator
 from .utils import settings
 from .utils.log_info import LogInfo
@@ -374,7 +375,7 @@ class StationSet(ABC):
 
         self.STATION_DICT[station_id]["file name"] = f"{station_id}.csv"
         self.STATION_DICT[station_id]["date range"] = date_range
-        self.STATION_DICT[station_id]["variables"] = variables
+        self.STATION_DICT[station_id]["variables"] = copy.deepcopy(variables)
 
     def load_verify(self, station_id, data, **kwargs):
         station_df = data['df']
