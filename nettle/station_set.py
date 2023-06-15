@@ -9,6 +9,7 @@ import datetime
 import os
 import pandas as pd
 import time
+import copy
 from collections.abc import Iterator
 from .utils import settings
 from .utils.log_info import LogInfo
@@ -374,7 +375,19 @@ class StationSet(ABC):
 
         self.STATION_DICT[station_id]["file name"] = f"{station_id}.csv"
         self.STATION_DICT[station_id]["date range"] = date_range
-        self.STATION_DICT[station_id]["variables"] = variables
+        # When we assign a dict directly to a variable and later on we change that
+        # variable. The initial dict will be changed too
+        # Example:
+        # At the end of run self.DATA_DICT['1']["unit of measurement"] should be an array
+        # of units used: ['deg_C', 'deg_F'] or ['deg_F'] or ['deg_C']
+        # self.STATION_DICT[station_id]["variables"] = self.DATA_DICT
+        # self.STATION_DICT[station_id]["variables"]['1']["unit of measurement"] = 'deg_C'
+        # So now self.DATA_DICT['1']["unit of measurement"] will be 'deg_C', even if before
+        # we used 'deg_F' in another station, when in reality it should have been an array of
+        # units.
+        # To prevent that we use a deepcopy so we the changes in STATION_DICT are not
+        # reflected in DATA_DICT
+        self.STATION_DICT[station_id]["variables"] = copy.deepcopy(variables)
 
     def load_verify(self, station_id, data, **kwargs):
         station_df = data['df']
