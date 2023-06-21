@@ -10,7 +10,6 @@ import os
 import pandas as pd
 import time
 import copy
-import re
 from collections.abc import Iterator
 from .utils import settings
 from .utils.log_info import LogInfo
@@ -374,7 +373,7 @@ class StationSet(ABC):
         variables = self._get_sorted_columns_in_dict_from_station_df(
             station_df)
 
-        self.STATION_DICT[station_id]["file name"] = f"{self.station_name_formatter(station_id)}.csv"
+        self.STATION_DICT[station_id]["file name"] = f"{station_id}.csv"
         self.STATION_DICT[station_id]["date range"] = date_range
         # When we assign a dict directly to a variable and later on we change that
         # variable. The initial dict will be changed too
@@ -399,46 +398,12 @@ class StationSet(ABC):
                 f"There are {len(station_df.columns)} column(s) in your dataframe being published but "
                 f"only {len(variables)} column(s) could be found in the data dictionary, please investigate")
 
-    @staticmethod
-    def station_name_formatter(station_name: str):
-        """
-        Take in a string and return it following our convention for station names
-        This is:
-
-        1) Upper case
-        2) All non-alphanumeric characters are _
-        3) No more than 1 _ in a row
-        4) First and last character shouldn't be underscores
-
-        Parameters
-        ----------
-        station_name : str
-            A given station name, for example "auckland aerodrome aws"
-
-        Returns
-        -------
-        formatted_station_name : str
-            The same station name but in our conventional format, e.g. "AUCKLAND_AERODROME_AWS"
-        """
-        # Convert all non alphanumeric to _
-        formatted_station_name = re.sub(r'\W+', '_', station_name.upper())
-        try:
-            # trim underscores from end of string
-            while formatted_station_name[-1] == '_':
-                formatted_station_name = formatted_station_name[:-1]
-            # trim underscores from start of string
-            while formatted_station_name[0] == '_':
-                formatted_station_name = formatted_station_name[1:]
-        except IndexError as e:
-            raise Exception(f"Sorry, {station_name} cannot be processed properly and is worth investigating")
-        return formatted_station_name
-
     def write_station_file(self, station_id, station_df, **kwargs):
         '''
         Write out a single file for a station, making sure to save relevant info such as date range
         to self.STATION_DICT. Should be called when no further changes are required to station_df
         '''
-        file_name = f"{self.station_name_formatter(station_id)}.csv"
+        file_name = f"{station_id}.csv"
         local_store = Local(dataset_manager=self)
         filepath = local_store.write(file_name, station_df)
         self.log.info("wrote station file to {}".format(filepath))
