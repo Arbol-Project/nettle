@@ -61,6 +61,7 @@ class S3(StoreInterface):
         self.creds = Session(profile=credentials_name).get_credentials()
         self.custom_dm_name = custom_dm_name
         self.custom_latest_metadata_path = custom_latest_metadata_path
+        self.custom_s3_output_path = None
 
     def fs(self, refresh: bool = False) -> s3fs.S3FileSystem:
         if refresh or not hasattr(self, "_fs"):
@@ -82,6 +83,9 @@ class S3(StoreInterface):
         )
 
     def folder_outpath(self) -> str:
+        if self.custom_s3_output_path:
+            return self.custom_s3_output_path
+
         return os.path.join(
             self.folder_url,
             self.dm.file_handler.output_path(omit_root=True)
@@ -123,9 +127,11 @@ class S3(StoreInterface):
 
         if self.has_existing_file(s3_path):
             # Maybe override folder instead of forbid?
-            error_message = f"Can't move files. A folder with the same name {s3_path} already exists."
-            self.dm.log.error(error_message)
-            return False
+            error_message = f"A folder with the same name {s3_path} already exists. Deleting old one."
+            self.dm.log.warn(error_message)
+            # Remove old one
+            filesystem.rm(s3_path, recursive=True)
+            # return False
 
         try:
             filesystem.put(local_path, s3_path, recursive=True)
