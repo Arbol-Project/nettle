@@ -125,15 +125,6 @@ class S3(StoreInterface):
         local_path = self.dm.file_handler.output_path()
         s3_path = self.folder_outpath()
 
-        if self.has_existing_file(s3_path):
-            1+1
-            # Maybe override folder instead of forbid?
-            # error_message = f"A folder with the same name {s3_path} already exists. Deleting old one."
-            # self.dm.log.warn(error_message)
-            # Remove old one
-            # filesystem.rm(s3_path, recursive=True)
-            # return False
-
         try:
             filesystem.put(local_path, s3_path, recursive=True)
             return s3_path
