@@ -1,0 +1,41 @@
+[build-system]
+requires = [
+    "setuptools>=45",
+    "wheel",
+    "setuptools_scm>=6.2"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nettle"
+version = "0.0.1"
+authors = [
+    { name = "Alisson Pinto", email = "alisson.pinto@clevertech.biz" },
+    { name = "Kiran Morrison", email = "kiran@arbol.io" }
+]
+keywords = ['Climate', 'ETL', 'IPFS', 'S3']
+dynamic = ['readme', 'description']
+
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Atmospheric Science"
+]
+
+[tool.setuptools]
+packages=['nettle', 'nettle.utils']
+
+[tool.setuptools_scm]
+version_scheme = "post-release"
+local_scheme = "no-local-version"
+write_to = "nettle/_version.py"
+
+[project.urls]
+"Homepage" = "https://arbol.io/"
+"Bug Tracker" = "https://github.com/Arbol-Project/nettle/issues"
