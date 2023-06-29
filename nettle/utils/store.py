@@ -170,7 +170,7 @@ class S3(StoreInterface):
             if file_type == 'csv':
                 csv = pd.read_csv(filepath)
                 return csv
-            elif file_type == 'json':
+            elif file_type == 'json' or file_type == 'geojson':
                 with self.fs().open(filepath, 'r') as f:
                     return json.load(f)
             else:
