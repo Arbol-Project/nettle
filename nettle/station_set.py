@@ -36,6 +36,11 @@ class StationSet(ABC):
     COMPRESSION_NONE = "none"
     COMPRESSION_GZIP = "gzip"
 
+    # paths relative to the script directory
+    OUTPUT_ROOT = settings.OUTPUT_ROOT
+    HASHES_OUTPUT_ROOT = settings.HASHES_OUTPUT_ROOT
+    HASH_HISTORY_PATH = os.path.join(HASHES_OUTPUT_ROOT, HISTORY_FILE_NAME)
+
     def __init__(self,
                  log=print,
                  custom_output_path=None,
