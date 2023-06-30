@@ -167,14 +167,14 @@ class S3(StoreInterface):
             file_type = filepath.split(".")[-1]
 
         try:
-            if file_type == 'csv':
-                csv = pd.read_csv(filepath)
-                return csv
-            elif file_type == 'json' or file_type == 'geojson':
-                with self.fs().open(filepath, 'r') as f:
+            with self.fs().open(filepath, 'r') as f:
+                if file_type == 'csv':
+                    csv = pd.read_csv(f)
+                    return csv
+                elif file_type == 'json' or file_type == 'geojson':
                     return json.load(f)
-            else:
-                raise Exception('Could not identify file type')
+                else:
+                    raise Exception('Could not identify file type')
         except FileNotFoundError:
             # warning logged in StationSet get_historical_dataframe
             return None
