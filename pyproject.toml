@@ -29,7 +29,7 @@ classifiers = [
 ]
 
 [tool.setuptools]
-packages=['nettle', 'nettle.utils']
+packages=['nettle', 'nettle.utils', 'nettle.utils.errors']
 
 [tool.setuptools_scm]
 version_scheme = "post-release"
