@@ -20,6 +20,7 @@ from .utils.date_handler import DateHandler
 # from .utils.s3_handler import S3Handler
 from .utils.geo_json_handler import GeoJsonHandler
 from .utils.store import Local
+from .utils.errors.custom_errors import FailedStationException
 
 
 class StationSet(ABC):
@@ -604,16 +605,19 @@ class StationSet(ABC):
         data = self.update_prepare_initial_data()
 
         for station_id in data['stations_ids']:
-            t1 = time.time()
+            try:
+                t1 = time.time()
 
-            self.update_extract(station_id, data)
-            self.update_transform(station_id, data)
-            self.update_load(station_id, data)
-            self.update_station_verify(station_id, data)
+                self.update_extract(station_id, data)
+                self.update_transform(station_id, data)
+                self.update_load(station_id, data)
+                self.update_station_verify(station_id, data)
 
-            t2 = time.time()
-            self.log.info(
-                f'Station_id={station_id} Time=\033[93m{(t2 - t1):.2f}\033[0m')
+                t2 = time.time()
+                self.log.info(
+                    f'Station_id={station_id} Time=\033[93m{(t2 - t1):.2f}\033[0m')
+            except FailedStationException as se:
+                self.log.error(f"Update Local Station failed for {station_id}: {str(se)}")
 
         # All stations are up to date, no need to update so return False
         return self.update_verify(data)
@@ -701,12 +705,15 @@ class StationSet(ABC):
         data = self.parse_initial_data(**kwargs)
         for station_id in data['stations_ids']:
             t1 = time.time()
-            self.parse_extract(station_id, data, **kwargs)
-            self.parse_transform(station_id, data, **kwargs)
-            self.parse_load(station_id, data, **kwargs)
-            t2 = time.time()
-            self.log.info(
-                f'Station_id={station_id} Time=\033[93m{(t2 - t1):.2f}\033[0m')
+            try:
+                self.parse_extract(station_id, data, **kwargs)
+                self.parse_transform(station_id, data, **kwargs)
+                self.parse_load(station_id, data, **kwargs)
+                t2 = time.time()
+                self.log.info(
+                    f'Station_id={station_id} Time=\033[93m{(t2 - t1):.2f}\033[0m')
+            except FailedStationException as se:
+                self.log.error(f"Parse Station failed for {station_id}: {str(se)}")
 
         self.write_metadata(data, **kwargs)  # write metadata.json
         # write stations.json and stations.geojson
