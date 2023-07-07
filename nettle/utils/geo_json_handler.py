@@ -1,5 +1,6 @@
 import json
 import os
+import shapely
 from .metadata_handler import MetadataHandler
 from .store import Local
 
@@ -42,6 +43,9 @@ class GeoJsonHandler:
         if 'longitude' in value or 'latitude' in value:
             return {"type": "Point", "coordinates": [
                 value['longitude'], value['latitude']]}
+        # polygon data prep assumes a bounding box of type [minx, miny, maxx, maxy]
+        if "bounding box" in value:
+            return shapely.to_geojson(shapely.geometry.box(value['bounding box']))
         # otherwise it should be included in the static station_info directory
         else:
             return value['geometry']
