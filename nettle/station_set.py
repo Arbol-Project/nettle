@@ -488,15 +488,14 @@ class StationSet(ABC):
 
         return old_station_metadata, old_stations, old_hash
 
-    def station_metadata_to_geojson(self, data, md_path:str, **kwargs):
+    def station_metadata_to_geojson(self, data: dict, md_path:str, **kwargs):
         '''
-        Take the station metadata self.STATION_DICT and convert it to valid geojson
+        Take the station metadata (presumed self.STATION_DICT) and convert it to valid JSON and geojson
         '''
         if data == None:
             data = self.STATION_DICT
 
         old_station_metadata, old_stations, old_hash = self._get_old_metadata(md_path=md_path)
-
         geojson = {"type": "FeatureCollection", "features": []}
 
         self.geo_json_handler.append_features(geojson, old_stations, old_hash,
