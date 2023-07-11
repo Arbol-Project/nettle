@@ -492,12 +492,15 @@ class StationSet(ABC):
         '''
         Take the station metadata self.STATION_DICT and convert it to valid geojson
         '''
+        if data == None:
+            data = self.STATION_DICT
+
         old_station_metadata, old_stations, old_hash = self._get_old_metadata(md_path=md_path)
 
         geojson = {"type": "FeatureCollection", "features": []}
 
         self.geo_json_handler.append_features(geojson, old_stations, old_hash,
-                                              self.STATION_DICT.items())
+                                              data.items())
         self.geo_json_handler.write_geojson_to_file_with_geometry_info(
             geojson, self, **kwargs)
         self.geo_json_handler.remove_geometry_from_geojson(geojson)
