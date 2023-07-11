@@ -67,7 +67,7 @@ class MetadataHandler:
         return latest_metadata
 
     def get_metadata_dicts(self, data_dict_name: str = None, station_dict_name: str = None):
-        # If variables are not specified, default to the station_set_name populated by the manager name
+        # If variables are not specified, default to the station_set_name populated from the manager name
         if data_dict_name == None:
             data_dict_name = self.station_set_name
         if station_dict_name == None:
