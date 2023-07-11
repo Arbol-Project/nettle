@@ -86,10 +86,7 @@ class S3(StoreInterface):
         if self.custom_s3_output_path:
             return self.custom_s3_output_path
 
-        return os.path.join(
-            self.folder_url,
-            self.dm.file_handler.output_path(omit_root=True)
-        )
+        return self.folder_url
 
     def latest_directory(self):
         if self.custom_dm_name:
