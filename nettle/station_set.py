@@ -469,10 +469,10 @@ class StationSet(ABC):
         return [old_station_metadata['features'][i]["properties"]
                 ["station name"] for i in range(len(old_station_metadata["features"]))]
 
-    def _get_old_metadata(self):
+    def _get_old_metadata(self, md_path: str):
         try:
             old_station_metadata = self.metadata_handler.latest_metadata(
-                path=MetadataHandler.STATION_METADATA_FILE_NAME)
+                path=md_path)
             old_stations = self._parse_old_stations_from_metadata(
                 old_station_metadata)
             if self.store.name() == 'ipfs':
@@ -488,11 +488,11 @@ class StationSet(ABC):
 
         return old_station_metadata, old_stations, old_hash
 
-    def station_metadata_to_geojson(self, data, **kwargs):
+    def station_metadata_to_geojson(self, data, md_path:str, **kwargs):
         '''
         Take the station metadata self.STATION_DICT and convert it to valid geojson
         '''
-        old_station_metadata, old_stations, old_hash = self._get_old_metadata()
+        old_station_metadata, old_stations, old_hash = self._get_old_metadata(md_path=md_path)
 
         geojson = {"type": "FeatureCollection", "features": []}
 

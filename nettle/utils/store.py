@@ -183,6 +183,7 @@ class S3(StoreInterface):
                 directory = self.custom_latest_metadata_path
             else:
                 directory = self.latest_directory()
+            import ipdb; ipdb.set_trace(context=4)
             file = f"{directory}/{path}"
             metadata_file = self.read(file)
         except IndexError:
