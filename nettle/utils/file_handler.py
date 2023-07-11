@@ -84,6 +84,16 @@ class FileHandler:
             path = os.path.join(self.OUTPUT_ROOT, path)
         return path
 
+    def get_folder_path(self, omit_root=False):
+        '''
+        Return a folder path inside `self.OUTPUT_ROOT` with the folder name based on `self.climate_measurement_span()`
+        and the passed `datetime`. If `omit_root` is set, remove `self.OUTPUT_ROOT` from the path.
+        '''
+        path = self.relative_path
+        if not omit_root:
+            path = os.path.join(self.OUTPUT_ROOT, path)
+        return path
+
     def output_path(self, omit_root=False):
         '''
         Return the path to a directory where parsed climate data will be written, automatically determining the end date and
@@ -93,9 +103,7 @@ class FileHandler:
         if self.custom_output_path is not None:
             return self.custom_output_path
         else:
-            # is this conversion necessary?
-            date = datetime.datetime.fromisoformat(str(self.date_with_time))
-            return self.get_folder_path_from_date(date, omit_root)
+            return self.get_folder_path(omit_root)
 
     def create_output_path(self):
         '''
