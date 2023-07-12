@@ -209,6 +209,14 @@ class S3(StoreInterface):
 
 
 class Local(StoreInterface):
+    def __init__(
+            self,
+            dataset_manager=None,
+            custom_latest_metadata_path: str = ''
+    ):
+        super().__init__(dataset_manager)
+        self.custom_latest_metadata_path = custom_latest_metadata_path
+
     def fs(self, refresh: bool = False) -> fsspec.implementations.local.LocalFileSystem:
         if refresh or not hasattr(self, "_fs"):
             self._fs = fsspec.filesystem("file")
@@ -255,11 +263,11 @@ class Local(StoreInterface):
     def read(self):
         pass
 
-    def metadata_by_filesystem(self, root, path):
+    def metadata_by_filesystem(self, directory, path):
         '''
         Get metadata from local filesystem by passing in a root folder path
         '''
-        metadata_path = os.path.join(root, path)
+        metadata_path = os.path.join(directory, path)
         self.dm.log.info(f"getting metadata from {metadata_path}")
         if os.path.exists(metadata_path):
             with open(metadata_path, "rt") as metadata:
@@ -269,9 +277,11 @@ class Local(StoreInterface):
 
     def latest_metadata(self, path, **kwargs):
         self.dm.log.info(f"getting latest metadata")
-        last_local_output_directory = kwargs.get('last_local_output_directory')
-        metadata_file = self.metadata_by_filesystem(
-            last_local_output_directory, path=path)
+        if self.custom_latest_metadata_path:
+            directory = self.custom_latest_metadata_path
+        else:
+            directory = self.folder_path
+        metadata_file = self.metadata_by_filesystem(directory=directory, path=path)
         if metadata_file is None:
             self.dm.log.warn(f"old metadata could not be found")
         else:
