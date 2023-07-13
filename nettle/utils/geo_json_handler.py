@@ -9,6 +9,11 @@ class GeoJsonHandler:
         self.file_handler = file_handler
         self.log = log
 
+    def write_geojson_to_file_custom_path(self, geojson, data_manager, file_name, **kwargs):
+        local_store = Local(dataset_manager=data_manager)
+        filepath = local_store.write(file_name, geojson, encoding='utf-8')
+        self.log.info("wrote station geojson metadata to {}".format(filepath))
+
     def write_geojson_to_file_with_geometry_info(self, geojson, data_manager, **kwargs):
         local_store = Local(dataset_manager=data_manager)
         file_name = MetadataHandler.STATION_METADATA_FILE_NAME.replace(

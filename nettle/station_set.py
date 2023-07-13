@@ -500,6 +500,14 @@ class StationSet(ABC):
                                               self.STATION_DICT.items())
         self.geo_json_handler.write_geojson_to_file_with_geometry_info(
             geojson, self, **kwargs)
+        # write each stations metadata to its own file to save on retrieval time
+        for station_geojson in geojson['features']:
+            station_filename = station_geojson['properties']['station name'] + '.geojson'
+            station_geojson = {
+                "type": "FeatureCollection",
+                "features": [station_geojson]}
+            self.geo_json_handler.write_geojson_to_file_custom_path(
+                geojson=station_geojson, data_manager=self, file_name=station_filename, **kwargs)
         self.geo_json_handler.remove_geometry_from_geojson(geojson)
         self.geo_json_handler.append_stations_not_in_new_update_to_metadata(
             old_station_metadata, old_stations, geojson)
@@ -617,7 +625,8 @@ class StationSet(ABC):
                 self.log.info(
                     f'Station_id={station_id} Time=\033[93m{(t2 - t1):.2f}\033[0m')
             except FailedStationException as se:
-                self.log.error(f"Update Local Station failed for {station_id}: {str(se)}")
+                self.log.error(
+                    f"Update Local Station failed for {station_id}: {str(se)}")
 
         # All stations are up to date, no need to update so return False
         return self.update_verify(data)
@@ -713,7 +722,8 @@ class StationSet(ABC):
                 self.log.info(
                     f'Station_id={station_id} Time=\033[93m{(t2 - t1):.2f}\033[0m')
             except FailedStationException as se:
-                self.log.error(f"Parse Station failed for {station_id}: {str(se)}")
+                self.log.error(
+                    f"Parse Station failed for {station_id}: {str(se)}")
 
         self.write_metadata(data, **kwargs)  # write metadata.json
         # write stations.json and stations.geojson
