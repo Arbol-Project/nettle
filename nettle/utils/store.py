@@ -122,6 +122,8 @@ class S3(StoreInterface):
         local_path = self.dm.file_handler.output_path()
         s3_path = self.folder_outpath()
 
+        print(local_path, s3_path)
+
         try:
             filesystem.put(local_path, s3_path, recursive=True)
             return s3_path
@@ -281,7 +283,8 @@ class Local(StoreInterface):
             directory = self.custom_latest_metadata_path
         else:
             directory = self.folder_path
-        metadata_file = self.metadata_by_filesystem(directory=directory, path=path)
+        metadata_file = self.metadata_by_filesystem(
+            directory=directory, path=path)
         if metadata_file is None:
             self.dm.log.warn(f"old metadata could not be found")
         else:
