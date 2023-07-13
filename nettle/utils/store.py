@@ -122,8 +122,6 @@ class S3(StoreInterface):
         local_path = self.dm.file_handler.output_path()
         s3_path = self.folder_outpath()
 
-        print(local_path, s3_path)
-
         try:
             filesystem.put(local_path, s3_path, recursive=True)
             return s3_path
