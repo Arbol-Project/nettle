@@ -507,7 +507,7 @@ class StationSet(ABC):
                 "type": "FeatureCollection",
                 "features": [station_geojson]}
             self.geo_json_handler.write_geojson_to_file_custom_path(
-                geojson=station_geojson, file_name=station_filename, **kwargs)
+                geojson=station_geojson, data_manager=self, file_name=station_filename, **kwargs)
         self.geo_json_handler.remove_geometry_from_geojson(geojson)
         self.geo_json_handler.append_stations_not_in_new_update_to_metadata(
             old_station_metadata, old_stations, geojson)
