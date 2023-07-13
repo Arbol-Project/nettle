@@ -281,7 +281,8 @@ class Local(StoreInterface):
             directory = self.custom_latest_metadata_path
         else:
             directory = self.folder_path
-        metadata_file = self.metadata_by_filesystem(directory=directory, path=path)
+        metadata_file = self.metadata_by_filesystem(
+            directory=directory, path=path)
         if metadata_file is None:
             self.dm.log.warn(f"old metadata could not be found")
         else:
@@ -385,7 +386,7 @@ class IPFS(StoreInterface):
 
     def write(self, file_name: str, content, encoding='utf-8', **kwargs):
         # check if exist first
-        # check if key exist
+        # then check if key exist
 
         # read locally in heads.json
         with open(self.HASH_HEADS_PATH, encoding=encoding) as fp:
