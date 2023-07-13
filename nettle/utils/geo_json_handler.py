@@ -45,9 +45,9 @@ class GeoJsonHandler:
             return {"type": "Point", "coordinates": [
                 value['longitude'], value['latitude']]}
         # polygon data prep assumes a bounding box of type [minx, miny, maxx, maxy]
-        if "bounding box" in value:
+        elif "bounding box" in value:
             geom = shapely.to_geojson(shapely.geometry.box(*value['bounding box']))
-            return ast.literal_eval(geom)
+            return ast.literal_eval(geom)  # to_geojson returns a string, must convert with ast
         # otherwise it should be included in the static station_info directory
         else:
             return value['geometry']

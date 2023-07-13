@@ -492,8 +492,12 @@ class StationSet(ABC):
         '''
         Take the station metadata (presumed self.STATION_DICT) and convert it to valid JSON and geojson
         '''
+        # set data and md_path if not set, for backwards compatibility
+        # TODO specify data and md_path in all ETLs, then remove this section 
         if data == None:
             data = self.STATION_DICT
+        if md_path == None:
+            md_path = self.metadata_handler.STATION_METADATA_FILE_NAME
 
         old_station_metadata, old_stations, old_hash = self._get_old_metadata(md_path=md_path)
         geojson = {"type": "FeatureCollection", "features": []}
