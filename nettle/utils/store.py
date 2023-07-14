@@ -281,7 +281,8 @@ class Local(StoreInterface):
             directory = self.custom_latest_metadata_path
         else:
             directory = self.folder_path
-        metadata_file = self.metadata_by_filesystem(directory=directory, path=path)
+        metadata_file = self.metadata_by_filesystem(
+            directory=directory, path=path)
         if metadata_file is None:
             self.dm.log.warn(f"old metadata could not be found")
         else:
