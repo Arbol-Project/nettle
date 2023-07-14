@@ -504,7 +504,7 @@ class StationSet(ABC):
             geojson, self, **kwargs)
         # write each stations metadata to its own file to save on retrieval time
         for station_geojson in geojson['features']:
-            station_filename = station_geojson['properties']['station name'] + '.geojson'
+            station_filename = f"{self.station_name_formatter(station_geojson['properties']['station name'])}.geojson"
             station_geojson = {
                 "type": "FeatureCollection",
                 "features": [station_geojson]}
