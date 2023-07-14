@@ -469,10 +469,13 @@ class StationSet(ABC):
         return [old_station_metadata['features'][i]["properties"]
                 ["station name"] for i in range(len(old_station_metadata["features"]))]
 
-    def _get_old_metadata(self, md_path: str):
+    def _get_old_metadata(self):
+        """
+        TODO make md_path toggle actually usable
+        """
         try:
             old_station_metadata = self.metadata_handler.latest_metadata(
-                path=md_path)
+                path=self.metadata_handler.STATION_METADATA_FILE_NAME)
             old_stations = self._parse_old_stations_from_metadata(
                 old_station_metadata)
             if self.store.name() == 'ipfs':
@@ -488,22 +491,15 @@ class StationSet(ABC):
 
         return old_station_metadata, old_stations, old_hash
 
-    def station_metadata_to_geojson(self, data: dict, md_path:str, **kwargs):
+    def station_metadata_to_geojson(self, data, **kwargs):
         '''
         Take the station metadata (presumed self.STATION_DICT) and convert it to valid JSON and geojson
         '''
-        # set data and md_path if not set, for backwards compatibility
-        # TODO specify data and md_path in all ETLs, then remove this section 
-        if data == None:
-            data = self.STATION_DICT
-        if md_path == None:
-            md_path = self.metadata_handler.STATION_METADATA_FILE_NAME
-
-        old_station_metadata, old_stations, old_hash = self._get_old_metadata(md_path=md_path)
+        old_station_metadata, old_stations, old_hash = self._get_old_metadata()
         geojson = {"type": "FeatureCollection", "features": []}
 
         self.geo_json_handler.append_features(geojson, old_stations, old_hash,
-                                              data.items())
+                                              self.STATION_DICT.items())
         self.geo_json_handler.write_geojson_to_file_with_geometry_info(
             geojson, self, **kwargs)
         self.geo_json_handler.remove_geometry_from_geojson(geojson)
