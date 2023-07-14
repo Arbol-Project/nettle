@@ -470,9 +470,12 @@ class StationSet(ABC):
                 ["station name"] for i in range(len(old_station_metadata["features"]))]
 
     def _get_old_metadata(self):
+        """
+        TODO make md_path toggle actually usable
+        """
         try:
             old_station_metadata = self.metadata_handler.latest_metadata(
-                path=MetadataHandler.STATION_METADATA_FILE_NAME)
+                path=self.metadata_handler.STATION_METADATA_FILE_NAME)
             old_stations = self._parse_old_stations_from_metadata(
                 old_station_metadata)
             if self.store.name() == 'ipfs':
@@ -490,10 +493,9 @@ class StationSet(ABC):
 
     def station_metadata_to_geojson(self, data, **kwargs):
         '''
-        Take the station metadata self.STATION_DICT and convert it to valid geojson
+        Take the station metadata (presumed self.STATION_DICT) and convert it to valid JSON and geojson
         '''
         old_station_metadata, old_stations, old_hash = self._get_old_metadata()
-
         geojson = {"type": "FeatureCollection", "features": []}
 
         self.geo_json_handler.append_features(geojson, old_stations, old_hash,

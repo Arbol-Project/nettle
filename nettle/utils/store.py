@@ -121,7 +121,6 @@ class S3(StoreInterface):
         filesystem = self.fs()
         local_path = self.dm.file_handler.output_path()
         s3_path = self.folder_outpath()
-
         try:
             filesystem.put(local_path, s3_path, recursive=True)
             return s3_path
@@ -176,7 +175,7 @@ class S3(StoreInterface):
             # warning logged in StationSet get_historical_dataframe
             return None
 
-    def latest_metadata(self, path, **kwargs):
+    def latest_metadata(self, path: str, **kwargs):
         self.dm.log.info(f"getting latest metadata")
         try:
             if self.custom_latest_metadata_path:

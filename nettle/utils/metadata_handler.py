@@ -66,17 +66,22 @@ class MetadataHandler:
 
         return latest_metadata
 
-    def get_metadata_dicts(self):
+    def get_metadata_dicts(self, data_dict_name: str = None, station_dict_name: str = None):
+        # If variables are not specified, default to the station_set_name populated from the manager name
+        if data_dict_name == None:
+            data_dict_name = self.station_set_name
+        if station_dict_name == None:
+            station_dict_name = self.station_set_name
         # static data dictionary which gets added
         # to self.metadata in write_metadata()
         data_dict_path = os.path.join(
-            self.dict_path, "static", "data_dictionaries", f"{self.station_set_name}.json")
+            self.dict_path, "static", "data_dictionaries", f"{data_dict_name}.json")
 
         # station dictionary containing additional station info
         # including geometry if not programmatically available
         # Will get converted to geojson in station_metadata_to_geojson()
         station_dict_path = os.path.join(
-            self.dict_path, "static", "station_info", f"{self.station_set_name}.json")
+            self.dict_path, "static", "station_info", f"{station_dict_name}.json")
 
         # self.DATA_DICT, self.STATION_DICT
         return self._file_handler.load_dict(data_dict_path), self._file_handler.load_dict(station_dict_path)
