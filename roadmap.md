@@ -16,8 +16,13 @@ The point of this repo is to help users build ETLs. ETLs are defined as a series
 With the above in mind, there are four main functions Nettle believes constitutes an ETL. They are listed below with an eye to how we expect them to be used, and what functions they may contain.
 
 ### init()
-🚨 **UP FOR DEBATE** 🚨
-Where constants are set, store is initialised, metadata is read in? (this includes metadata.json and stations.geojson)
+Set the following constants, required unless specified:
+-  COLLECTION (str) (eg. arbol, NOAA, speedwell, CME)
+-  DATASET (str), <variables>-<frequency> (eg. temperature-daily, all-monthly, precipitation-hourly)
+    -  Note that collection/dataset forms the default path for all outputs regardless of store
+-  CUSTOM_OUTPUT_PATH (str = None)(not required), used in cases such as CME where we want outputs to look like `forecast/cme/ddif-daily`
+-  multithread_transform (bool) (not required, default False) should the ETL be multithreaded at the transform stage?
+-  DATA_DICTIONARY (dict) , used in transform to validate data output and used as a skeleton around which to build station-level metadata. Likely read from static files
 
 ### ~~update_local_input()~~ extract()
 #### General gist
@@ -33,7 +38,7 @@ The method `extract()` should return `True` if new data was found. This will tri
 
 ### ~~parse()~~ transform()
 #### General gist
-The aim of the `transform()` step is to take that minimally modified data from `/raw_data` and transform it to a final format, ready to be saved to `/processed_data`. This final format is as such, with one temporal index column (dt) and a series of data columns:
+The aim of the `transform()` step is to take that minimally modified data from `/raw_data` and transform it to a final format, ready and saved to `/processed_data`. This final format is as such, with one temporal index column (dt) and a series of data columns:
 
 | dt         | Var1    | Var2         |
 |------------|---------|--------------|
@@ -45,52 +50,51 @@ The aim of the `transform()` step is to take that minimally modified data from `
 I envision the method itself shouldn't need to be modified by the end user. It should however contain an abstractmethod, easily identifiable by the user, that deals with the transformation of a single station's data in to the final format. Sometimes data needs to be pulled from the raw data to use for metadata, so I imagine the parse method would look something like:
 
 ```python
-def parse(self, **kwargs):
-    for station in stations:
-        t1 = time.time()
-        try:
-            # not edited per ETL
-            raw_data = self.load_raw_data(station, **kwargs)
-            # edited per ETL
-            single_station_metadata, processed_data = self.transform_raw_data(raw_data, station, **kwargs)
-            # not edited per ETL
-            self.save_processed_data(processed_data, station, **kwargs)
-            if bool(single_station_metadata):
-                # likely edited per ETL but only necessary if metadata pulled from data files
-                self.integrate_new_station_metadata(single_station_metadata, station_metadata, **kwargs)
-            # not edited per ETL
-            self.write_metadata(data, **kwargs)  
+def single_station_parse(self, station_id, **kwargs):
+    raw_data = self.load_raw_data(station_id, **kwargs)
+    # abstractmethod
+    raw_station_metadata, processed_data = self.transform_raw_data(raw_data, station_id, **kwargs)
+    # abstractmethod
+    processed_station_metadata = self.transform_raw_metadata(raw_station_metadata, station_id, **kwargs)
+    # the below are both verify steps and save steps
+    # will need access to the global data dictionary, collection, dataset, custom_output_path
+    self.save_processed_data(processed_data, station_id, **kwargs)
+    self.save_processed_station_metadata(processed_station_metadata, station_id, **kwargs)
+
+def transform(self, **kwargs):
+    if self.multithread_transform:
+        # multithreaded logic for single_station_parse
+    else:
+        stations = os.listdir('/raw_data/<collection>/<dataset>')
+        # -4 cuts off .csv
+        stations = [station[:-4] for station in stations if '.csv' in station]
+        for station_id in stations:
+            t1 = time.time()
+            self.single_station_parse(station_id, **kwargs)
             t2 = time.time()
             self.log.info(
                 f'Station_id={station_id} Time=\033[93m{(t2 - t1):.2f}\033[0m')
-        except FailedStationException as se:
-            self.log.error(
-                f"Parse Station failed for {station_id}: {str(se)}")
+    # now construct/verify metadata.json and stations.geojson
+    # this will have to download the latest versions of the metadata files
+    # from somewhere
+    self.save_combined_metadata_files(**kwargs)
     return
 ```
 
-For datasets that require looking at their last update before 
+#### Expected output
+By the end of `transform()`, the user should have saved locally, in `/processed_data`, all the data they wish to add to their store of choice, in the format they want it with relevant metadata.json, station-by-station geojson and a unified stations.geojson file.
+
 
 #### Questions
--  Is this the right place to deal with metadata extraction from data? If handled in `extract()` which is being overwritten anyway, this could be cleaner.
+**Q: What happens if data has no natural station-by-station approach?**
 
--  What happens if data has no natural station-by-station approach?
--  Metadata has been glossed over slightly in this description, how does it fit in?
--  Does it make more sense to verify data whilst it's still in memory?
-
-### verify()
-### General gist
-The point of this step is to make sure data and metadata are in the correct format. This includes but is not limited to:
-
--  Are date ranges continuous for datasets (e.g. 2021-02-01, 2021-02-02, 2021-02-03...)
--  Does `metadata.json` fit the desired format
--  Does `stations.geojson` fit the desired format and contain necessary fields. (🚨 **WHAT ARE THESE FIELDS** 🚨)
-
-It is very unlikely that this step would require any modification by an ETL writer. As such its inner workings could remain pretty hidden.
+A: Stop using Nettle. In order to make useful tools we've had to make assumptions as to what the data looks like. Having station-by-station data, or some other natural equivalent (county, country, windfarm) is imperative to the nature of the beast.
 
 ### ~~add()~~ load()
 ### General gist
 The final step is a simple one and should not be overwritten. If intending to output the files locally, this step is skipped. If outputting to s3, a simple copy of the `/processed_data/<path-to-current-update>` folder is all that is required. If using IPFS, this is handled by using the kubo rpc.
+
+None of this should be surfaced in ETLs, it should just sit in Nettle and be ignored by ETL writers.
 
 
 ![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png)
