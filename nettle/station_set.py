@@ -11,8 +11,6 @@ import pandas as pd
 import time
 import copy
 import re
-from enum import Enum
-from .utils import settings
 from .utils.log_info import LogInfo
 from .utils.file_handler import FileHandler
 from .utils.metadata_handler import MetadataHandler
@@ -20,8 +18,6 @@ from .utils.date_handler import DateHandler
 from .utils.geo_json_handler import GeoJsonHandler
 from .utils.store import Local
 from .utils.errors.custom_errors import FailedStationException
-
-ParseType = Enum('ParseType', ['SINGLE_THREAD', 'MULTI_THREAD'])
 
 
 class StationSet(ABC):
