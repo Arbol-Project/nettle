@@ -8,28 +8,47 @@ from .date_handler import DateHandler
 
 class FileHandler:
     # paths relative to the script directory
-    LOCAL_INPUT_ROOT = settings.LOCAL_INPUT_ROOT
-    OUTPUT_ROOT = settings.OUTPUT_ROOT
+    RAW_DATA_ROOT = settings.RAW_DATA_ROOT
+    PROCESSED_DATA_ROOT = settings.PROCESSED_DATA_ROOT
 
-    def __init__(self, custom_input_path, custom_output_path, climate_measurement_span,
-                 date_with_time, relative_path):
+    def __init__(self, custom_relative_data_path, relative_path):
         '''
         The file folder hierarchy for a set. This should be a relative path so it can be appended to other root paths like
         `self.local_input_path()` and `self.output_path()`
         '''
-        self.relative_path = relative_path
-        self.custom_input_path = custom_input_path
-        self.custom_output_path = custom_output_path
-        self.climate_measurement_span = climate_measurement_span
-        self.date_with_time = date_with_time
+        if custom_relative_data_path:
+            self.relative_path = custom_relative_data_path
+        else:
+            self.relative_path = relative_path
+        self.raw_data_path = self.get_data_path(self.RAW_DATA_ROOT)
+        self.processed_data_path = self.get_data_path(self.PROCESSED_DATA_ROOT)
 
-    def local_input_path(self, local_input_root=LOCAL_INPUT_ROOT):
+    def create_directory_if_necessary(self, path):
+        if not os.path.exists(path):
+            os.makedirs(path, 0o755, True)
+
+    def get_data_path(self, root):
+        path = os.path.join(root, self.relative_path)
+        self.create_directory_if_necessary(path)
+        return path
+
+    @staticmethod
+    def load_dict(path):
+        try:
+            with open(path, encoding='utf-8') as f:
+                return json.load(f)
+        except FileNotFoundError:
+            return None
+
+    # Check if any below here can be deleted
+
+    def local_input_path(self, local_input_root=RAW_DATA_ROOT):
         '''
         The path to local data is built recursively by appending each derivative's relative path to the previous derivative's
         path. If a custom input path is set, force return the custom path.
         '''
-        if self.custom_input_path:
-            return self.custom_input_path
+        if self.custom_raw_data_path:
+            return self.custom_raw_data_path
 
         path = os.path.join(local_input_root, self.relative_path)
 
@@ -46,7 +65,7 @@ class FileHandler:
         '''
         # default to self.OUTPUT_ROOT/self.relative_path()
         if root is None:
-            root = os.path.join(self.OUTPUT_ROOT, self.relative_path)
+            root = os.path.join(self.PROCESSED_DATA_ROOT, self.relative_path)
         existing = glob.glob(os.path.join(root, "[0-9]*"))
         if sort:
             existing = sorted(existing)
@@ -62,14 +81,6 @@ class FileHandler:
         if self.existing_directories(root=root):
             return self.existing_directories(root=root)[-1]
 
-    @staticmethod
-    def load_dict(path):
-        try:
-            with open(path, encoding='utf-8') as f:
-                return json.load(f)
-        except FileNotFoundError:
-            return None
-
     def get_folder_path_from_date(self, date, omit_root=False):
         '''
         Return a folder path inside `self.OUTPUT_ROOT` with the folder name based on `self.climate_measurement_span()`
@@ -81,7 +92,7 @@ class FileHandler:
             date_format = DateHandler.DATE_FORMAT_FOLDER
         path = os.path.join(self.relative_path, date.strftime(date_format))
         if not omit_root:
-            path = os.path.join(self.OUTPUT_ROOT, path)
+            path = os.path.join(self.PROCESSED_DATA_ROOT, path)
         return path
 
     def get_folder_path(self, omit_root=False):
@@ -91,7 +102,7 @@ class FileHandler:
         '''
         path = self.relative_path
         if not omit_root:
-            path = os.path.join(self.OUTPUT_ROOT, path)
+            path = os.path.join(self.PROCESSED_DATA_ROOT, path)
         return path
 
     def output_path(self, omit_root=False):
@@ -100,8 +111,8 @@ class FileHandler:
         base on that. If `omit_root` is set, remove `self.OUTPUT_ROOT` from the path. Override with `self.custom_output_path`
         if that member variable is set
         '''
-        if self.custom_output_path is not None:
-            return self.custom_output_path
+        if self.custom_processed_data_path is not None:
+            return self.custom_processed_data_path
         else:
             return self.get_folder_path(omit_root)
 

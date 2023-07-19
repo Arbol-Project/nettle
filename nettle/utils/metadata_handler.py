@@ -8,12 +8,11 @@ class MetadataHandler:
     STATION_METADATA_FILE_NAME = "stations.json"
 
     def __init__(self, log, file_handler, dict_path,
-                 station_set_name, custom_metadata_head_path, store):
+                 station_set_name, store):
         self._log = log
         self._file_handler = file_handler
         self.dict_path = dict_path
         self.station_set_name = station_set_name
-        self.custom_metadata_head_path = custom_metadata_head_path
         self.store = store
 
     @staticmethod
@@ -39,7 +38,7 @@ class MetadataHandler:
                     "features": []
                 }
 
-    def latest_metadata_dict(self, custom_metadata_head_path, force_filesystem, key, path,
+    def latest_metadata_dict(self, force_filesystem, key, path,
                              metadata_filename, station_filename, latest_hash,
                              is_force_http_enabled=False, is_force_filesystem_enabled=False,
                              last_local_output_directory=None):
@@ -53,7 +52,7 @@ class MetadataHandler:
         latest_metadata = self.get_raw_latest_metadata_new_version(
             path, last_local_output_directory)
         # latest_metadata = \
-        #     self.get_raw_latest_metadata(custom_metadata_head_path, force_filesystem, key, path,
+        #     self.get_raw_latest_metadata(force_filesystem, key, path,
         #                                  metadata_filename, station_filename, latest_hash,
         #                                  is_force_http_enabled, is_force_filesystem_enabled,
         #                                  last_local_output_directory)
@@ -65,6 +64,21 @@ class MetadataHandler:
         latest_metadata.setdefault("api documentation", {})
 
         return latest_metadata
+
+    def get_dict(self, folder: str, dict_name: str = None):
+        if dict_name is None:
+            dict_name = self.station_set_name
+
+        dict_path = os.path.join(
+            self.dict_path, "static", folder, f"{dict_name}.json")
+
+        return self._file_handler.load_dict(dict_path)
+
+    def get_station_dict(self, dict_name: str = None):
+        return self.get_dict("station_info", dict_name)
+
+    def get_data_dict(self, dict_name: str = None):
+        return self.get_dict("data_dictionaries", dict_name)
 
     def get_metadata_dicts(self, data_dict_name: str = None, station_dict_name: str = None):
         # If variables are not specified, default to the station_set_name populated from the manager name
@@ -89,7 +103,7 @@ class MetadataHandler:
     # metadata
 
     def latest_metadata(self, force_filesystem=False, key=None, root=None, path=METADATA_FILE_NAME):
-        return self.latest_metadata_dict(self.custom_metadata_head_path, force_filesystem, key, path,
+        return self.latest_metadata_dict(force_filesystem, key, path,
                                          self.METADATA_FILE_NAME, self.STATION_METADATA_FILE_NAME,
                                          'REMOVE THIS, OLD IPFS STUFF',
                                          False,
