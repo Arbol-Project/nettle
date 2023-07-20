@@ -89,3 +89,14 @@ class GeoJsonHandler:
 
             # append to master geojson
             geojson["features"].append(base_feature)
+
+    def get_feature_for_station(self, old_stations, old_hash, station_id):
+        base_feature = {
+            "type": "Feature",
+            # "geometry": self.get_geometry(value),
+            "geometry": '',
+            # "properties": self.get_properties(station_id, old_stations, old_hash, value)
+            "properties": ''
+        }
+
+        return base_feature

@@ -34,36 +34,45 @@ class StationSet(ABC):
     COMPRESSION_NONE = "none"
     COMPRESSION_GZIP = "gzip"
 
-    def __init__(self,
-                 log=print,
-                 custom_relative_data_path=None,
-                 store=None,
-                 custom_dict_path=None
-                 ):
+    def __init__(
+            self,
+            collection,
+            dataset,
+            log=print,
+            custom_relative_data_path=None,
+            store=None,
+            multithread_transform=None
+    ):
         '''
         Set member variables to defaults.
         '''
-        self.log = LogInfo(log, self.name())
-        self.metadata = None
-        self.custom_relative_data_path = custom_relative_data_path
-        self.custom_dict_path = custom_dict_path
         # Establish date today just incase etl runs over midnight
         self.today_with_time = datetime.datetime.now()
-
-        self.date_handler = DateHandler()
-        self.file_handler = FileHandler(custom_relative_data_path, relative_path=self.name())
+        self.multithread_transform = multithread_transform
+        self.COLLECTION = collection
+        self.DATASET = dataset
+        self.log = LogInfo(log, self.name())
+        if custom_relative_data_path is None:
+            relative_path = os.path.join(
+                self.COLLECTION,
+                self.DATASET
+            )
+        else:
+            relative_path = custom_relative_data_path
         self.store = store
         self.store.dm = self
-
+        self.date_handler = DateHandler()
+        self.file_handler = FileHandler(relative_path=relative_path)
         self.metadata_handler = MetadataHandler(self.log, self.file_handler,
-                                                self._correct_dict_path(),
+                                                self.default_dict_path(),
                                                 self.name(),
                                                 self.store)
-
         self.geo_json_handler = GeoJsonHandler(self.file_handler, self.log)
-        self.station_dict = None
-        # self.STATION_DICT = {}
-        # self.DATA_DICT = {}
+
+        # If needed a custom name call it again using
+        # get_station_dict(dict_name='custom_name')
+        self.STATION_DICTIONARY = self.metadata_handler.get_station_info()
+        self.DATA_DICTIONARY = self.metadata_handler.get_data_dict()
 
     def __str__(self):
         return self.name()
@@ -77,13 +86,8 @@ class StationSet(ABC):
     def __hash__(self):
         return hash(str(self))
 
-    def _correct_dict_path(self):
-        # changing this for testing
-        # return os.path.join(os.getcwd(), "etls")
-        if self.custom_dict_path:
-            return self.custom_dict_path
-        else:
-            return os.path.join(os.getcwd())
+    def default_dict_path(self):
+      return os.path.join(os.getcwd())
 
     @classmethod
     def name(cls):
@@ -155,8 +159,8 @@ class StationSet(ABC):
         except (FileNotFoundError, IOError, TypeError, KeyError):
             print('Likely first run, this is safe')
 
-    def get_station_ids(self):
-        return list(self.STATION_DICT.keys())
+    def get_stations_ids(self):
+        return list(self.STATION_DICTIONARY.keys())
 
     @staticmethod
     def _get_smallest_value_date(data_df):
@@ -508,7 +512,7 @@ class StationSet(ABC):
             # pull the old station metadata and use it to update date ranges on a station by station basis
             self.update_date_ranges_in_station_dict()
             return {
-                'stations_ids': self.get_station_ids()
+                'stations_ids': self.get_stations_ids()
             }
 
     def on_update_prepare_initial_data(self, initial_data, **kwargs):
@@ -601,7 +605,7 @@ class StationSet(ABC):
 
     def before_parse_initial_data(self, **kwargs):
         return {
-            'stations_ids': self.get_station_ids()
+            'stations_ids': self.get_stations_ids()
         }
 
     def on_parse_initial_data(self, data, **kwargs):
@@ -669,10 +673,6 @@ class StationSet(ABC):
         # data = self.after_parse_verify(data, **kwargs)
         return data
 
-    def parse(self, **kwargs):
-        # self.write_total_metadata()
-        print('super parse')
-
     def parse_bkp(self, **kwargs):
         """
         Outputs separate csv for each station
@@ -704,97 +704,120 @@ class StationSet(ABC):
         '''
         pass
 
+    ## NEW STUFF
 
-class SingleThreadStationSet(StationSet, ABC):
-    # ToDo: Remove this
-    def climate_measurement_span(self):
-        '''
-        Returns the time resolution of the dataset as a string (e.g. "hourly", "daily", "monthly", etc.)
-        '''
-        pass
-
-    # ToDo: Check where to put these
-    def call_this_before_somewhere(self):
-        self.station_dict = self.metadata_handler.get_station_dict()
-        data_dict = self.metadata_handler.get_data_dict()
-
-    def get_stations(self):
-        return list(self.station_dict.keys())
-
-    def extract_raw_data(self, station, **kwargs):
+    def read_raw_station_data(self, station_id, **kwargs):
         df = pd.read_csv(
             os.path.join(
                 self.file_handler.raw_data_path,
-                f'{station}.csv'
+                f'{station_id}.csv'
             ))
-        print(df)
         return df
 
-    # ToDo: This will be a abstractmethod
-    def transform_raw_data(self, raw_data, station, **kwargs):
+    @abstractmethod
+    def transform_raw_data(self, raw_data, station_id, **kwargs):
         return None, None
 
-    def transform_raw_metadata(self, station, station_metadata, processed_data, **kwargs):
+    @abstractmethod
+    def transform_raw_metadata(self, raw_station_metadata, station_id, **kwargs):
+        return ''
+
+    # We should write somewhere that processed data should be a dataframe?
+    def local_save(self, folder, file_name, data, enconding=None, **kwargs):
+        local_store = Local(
+            dataset_manager=self,
+            output_folder=folder
+        )
+        return local_store.write(file_name, data, enconding=enconding)
+
+    def save_processed_data(self, processed_data, station_id, **kwargs):
+        file_name = f"{self.station_name_formatter(station_id)}.csv"
+        filepath = self.local_save(
+            self.file_handler.processed_data_path,
+            file_name,
+            processed_data,
+            **kwargs
+        )
+        self.log.info("wrote station file to {}".format(filepath))
+
+    def save_processed_station_metadata(self, processed_station_metadata, station_id, **kwargs):
+        station_filename = f"{self.station_name_formatter(station_id)}.geojson"
+        filepath = self.local_save(
+            self.file_handler.processed_data_path,
+            station_filename,
+            processed_station_metadata,
+            encoding='utf-8'
+        )
+        self.log.info("wrote station geojson metadata to {}".format(filepath))
+
+    def save_combined_metadata_files(self, **kwargs):
+        # If we don't pass a variable with the metadata somehow
+        # we will have to read all the metadata saved in filesystem
+        # this IO operations could be slow, need to test
         pass
 
-    def save_processed_data(self, processed_data, station, **kwargs):
-        pass
+    def get_stations_to_transform(self):
+        stations = os.listdir(self.file_handler.raw_data_path)
+        # -4 cuts off .csv
+        return [station[:-4] for station in stations if '.csv' in station]
 
-    def save_processed_station_metadata(self, station_metadata, station, **kwargs):
-        pass
+    def single_station_parse(self, station_id, **kwargs):
+        try:
+            raw_data = self.read_raw_station_data(station_id, **kwargs)
+            raw_station_metadata, processed_data = self.transform_raw_data(raw_data, station_id, **kwargs)
+            processed_station_metadata = self.transform_raw_metadata(raw_station_metadata, station_id, **kwargs)
+            self.save_processed_data(processed_data, station_id, **kwargs)
+            self.save_processed_station_metadata(processed_station_metadata, station_id, **kwargs)
+        except FailedStationException as fse:
+            self.log.error(
+                f"Transform single station failed for {station_id}: {str(fse)}")
 
-    def parse(self, **kwargs):
-        print('single thread station set parse')
-
-        stations = self.get_stations()
-
-        for station in stations:
-            try:
-                raw_data = self.extract_raw_data(station, **kwargs)
-                station_metadata, processed_data = self.transform_raw_data(raw_data, station, **kwargs)
-                self.transform_raw_metadata(station, station_metadata, processed_data, **kwargs)
-                self.save_processed_data(processed_data, station, **kwargs)
-                self.save_processed_station_metadata(station_metadata, station, **kwargs)
-            except FailedStationException as se:
-                self.log.error(
-                    f"Parse Station failed for {station}: {str(se)}")
-
-        super().parse(**kwargs)
-
-
-class MultiThreadStationSet(StationSet, ABC):
-    # ToDo: Remove this
-    def climate_measurement_span(self):
-        '''
-        Returns the time resolution of the dataset as a string (e.g. "hourly", "daily", "monthly", etc.)
-        '''
-        pass
-
-    def parse(self, **kwargs):
-        print('single thread station set parse')
-        super().parse(**kwargs)
-
-    # Remove later, just to make it easier to compare
-    def parse2(self, **kwargs):
-        """
-        Outputs separate csv for each station
-        formats and writes all metadata
-        """
-        data = self.parse_initial_data(**kwargs)
-        for station_id in data['stations_ids']:
-            t1 = time.time()
-            try:
-                self.parse_extract(station_id, data, **kwargs)
-                self.parse_transform(station_id, data, **kwargs)
-                self.parse_load(station_id, data, **kwargs)
-                t2 = time.time()
+    def transform(self, **kwargs):
+        if self.multithread_transform:
+            # multithreaded logic for single_station_parse
+            pass
+        else:
+            stations = self.get_stations_to_transform()
+            for station_id in stations:
+                start_time = time.time()
+                self.single_station_parse(station_id, **kwargs)
+                finish_time = time.time()
                 self.log.info(
-                    f'Station_id={station_id} Time=\033[93m{(t2 - t1):.2f}\033[0m')
-            except FailedStationException as se:
-                self.log.error(
-                    f"Parse Station failed for {station_id}: {str(se)}")
+                    f'Station_id={station_id} Time=\033[93m{(finish_time - start_time):.2f}\033[0m')
 
-        self.write_metadata(data, **kwargs)  # write metadata.json
-        # write stations.json and stations.geojson
-        self.station_metadata_to_geojson(data, **kwargs)
-        return self.parse_verify(data, **kwargs)
+            # old metadata info should be read in and added to new metadata if it's missing
+
+            # now construct/verify metadata.json and stations.geojson
+            # this will have to download the latest versions of the metadata files
+            # from somewhere
+            self.save_combined_metadata_files(**kwargs)
+
+# For debug purpose, will be removed in the final version
+class TestSet(StationSet):
+    def climate_measurement_span(self):
+        return 'DAILY'
+
+    def transform_raw_data(self, raw_data, station_id, **kwargs):
+        processed_data = raw_data
+        raw_station_metadata = {
+            "name": "BOM Australia Weather Station Data",
+            "data source": 'www.com',
+            "compression": "None",
+            "documentation": "Weather data from the Bureau of Meteorology in Australia covering roughly 500 stations",
+            "tags": ["temperature", "rain", "wind", "australia"]
+        }
+        return raw_station_metadata, processed_data
+
+    def transform_raw_metadata(self, raw_station_metadata, station_id, **kwargs):
+        old_stations = ''
+        old_hash = ''
+        feature = self.geo_json_handler.get_feature_for_station(
+            old_stations, old_hash, station_id
+        )
+        station_geojson = {
+            "type": "FeatureCollection",
+            "features": feature
+        }
+        return station_geojson
+
+

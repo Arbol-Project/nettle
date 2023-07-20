@@ -211,10 +211,12 @@ class Local(StoreInterface):
     def __init__(
             self,
             dataset_manager=None,
-            custom_latest_metadata_path: str = ''
+            custom_latest_metadata_path: str = '',
+            output_folder=None
     ):
         super().__init__(dataset_manager)
         self.custom_latest_metadata_path = custom_latest_metadata_path
+        self.output_folder = output_folder
 
     def fs(self, refresh: bool = False) -> fsspec.implementations.local.LocalFileSystem:
         if refresh or not hasattr(self, "_fs"):
@@ -222,22 +224,15 @@ class Local(StoreInterface):
         return self._fs
 
     def __str__(self) -> str:
-        return str(self.folder_path)
-
-    def file_outpath(self, file_name) -> str:
-        return os.path.join(self.folder_path, file_name)
-
-    @property
-    def folder_path(self) -> str:
-        return self.dm.file_handler.output_path()
+        return str(self.output_folder)
 
     def has_existing_file(self, file_name) -> bool:
-        return os.path.exists(self.file_outpath(file_name))
+        return os.path.exists(os.path.join(self.output_folder, file_name))
 
     def write(self, file_name: str, content, encoding=None, **kwargs):
         filesystem = self.fs()
 
-        filepath = self.file_outpath(file_name)
+        filepath = os.path.join(self.output_folder, file_name)
 
         try:
             with filesystem.open(filepath, 'w', encoding=encoding) as f:

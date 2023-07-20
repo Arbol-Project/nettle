@@ -11,15 +11,12 @@ class FileHandler:
     RAW_DATA_ROOT = settings.RAW_DATA_ROOT
     PROCESSED_DATA_ROOT = settings.PROCESSED_DATA_ROOT
 
-    def __init__(self, custom_relative_data_path, relative_path):
+    def __init__(self, relative_path):
         '''
         The file folder hierarchy for a set. This should be a relative path so it can be appended to other root paths like
         `self.local_input_path()` and `self.output_path()`
         '''
-        if custom_relative_data_path:
-            self.relative_path = custom_relative_data_path
-        else:
-            self.relative_path = relative_path
+        self.relative_path = relative_path
         self.raw_data_path = self.get_data_path(self.RAW_DATA_ROOT)
         self.processed_data_path = self.get_data_path(self.PROCESSED_DATA_ROOT)
 
