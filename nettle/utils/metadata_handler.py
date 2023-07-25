@@ -9,11 +9,13 @@ class MetadataHandler:
     DATA_DICT_FOLDER = 'data_dictionaries'
 
     def __init__(self, file_handler, dict_path,
-                 station_set_name, store):
+                 station_set_name, store, local_store, log):
         self.file_handler = file_handler
         self.dict_path = dict_path
         self.station_set_name = station_set_name
         self.store = store
+        self.local_store = local_store
+        self.log = log
 
     # @staticmethod
     # def translate_latest_metadata_json_date_format_to_python_datetime(latest_metadata):
@@ -84,14 +86,24 @@ class MetadataHandler:
 
     ##################### NEW STUFF
 
-    def get_dict(self, folder: str, dict_name: str = None):
+    # def get_dict(self, store, folder: str, dict_name: str = None):
+    #     if dict_name is None:
+    #         dict_name = self.station_set_name
+    #
+    #     dict_path = os.path.join(
+    #         self.dict_path, self.STATIC_FOLDER, folder, f"{dict_name}.json")
+    #
+    #     # return self.file_handler.load_dict(dict_path)
+    #     return store.read(dict_path)
+
+    def get_dict(self, dict_folder, dict_name: str = None):
         if dict_name is None:
             dict_name = self.station_set_name
-
-        dict_path = os.path.join(
-            self.dict_path, self.STATIC_FOLDER, folder, f"{dict_name}.json")
-
-        return self.file_handler.load_dict(dict_path)
+        self.local_store.base_folder = os.path.join(self.dict_path, self.STATIC_FOLDER, dict_folder)
+        static_dict = self.local_store.read(f"{dict_name}.json")
+        if static_dict is None:
+            raise FileNotFoundError(f"Could not find {dict_folder}/{dict_name}.json.")
+        return static_dict
 
     def get_station_info(self, dict_name: str = None):
         return self.get_dict(self.STATION_INFO_FOLDER, dict_name)
@@ -99,14 +111,17 @@ class MetadataHandler:
     def get_data_dict(self, dict_name: str = None):
         return self.get_dict(self.DATA_DICT_FOLDER, dict_name)
 
-    def get_old_station_geo_metadata(self, station: 'str', store=None):
+    def get_metadata(self, filename, store=None):
+        return store.read(filename)
+
+    def get_old_station_geo_metadata(self, station: str, store=None):
         if store is None:
             store = self.store
-        full_relative_path = os.path.join(self.file_handler.relative_path, f'{station}.geojson')
-        return store.read(full_relative_path)
+        old_metadata = self.get_metadata(f'{station}.geojson', store)
+        return old_metadata
 
     def get_old_metadata(self, store=None):
         if store is None:
             store = self.store
-        full_relative_path = os.path.join(self.file_handler.relative_path, self.METADATA_FILE_NAME)
-        return store.read(full_relative_path)
+        old_metadata = self.get_metadata(self.METADATA_FILE_NAME, store)
+        return old_metadata
