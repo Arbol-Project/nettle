@@ -64,10 +64,10 @@ class StationSet(ABC):
         else:
             relative_path = custom_relative_data_path
         self.store = store
-        self.store.dm = self
+        self.store.log = self.log
         self.date_handler = DateHandler()
         self.file_handler = FileHandler(relative_path=relative_path)
-        self.metadata_handler = MetadataHandler(self.log, self.file_handler,
+        self.metadata_handler = MetadataHandler(self.file_handler,
                                                 self.default_dict_path(),
                                                 self.name(),
                                                 self.store)
@@ -102,12 +102,12 @@ class StationSet(ABC):
 
     # maybe set this info for each station set in a json file and read it here?
     # so the class doesnt have to override this class
-    @abstractmethod
-    def climate_measurement_span(self):
-        '''
-        Returns the time resolution of the dataset as a string (e.g. "hourly", "daily", "monthly", etc.)
-        '''
-        pass
+    # @abstractmethod
+    # def climate_measurement_span(self):
+    #     '''
+    #     Returns the time resolution of the dataset as a string (e.g. "hourly", "daily", "monthly", etc.)
+    #     '''
+    #     pass
 
     def get_historical_dataframe(self, station_id):
         """
@@ -711,11 +711,12 @@ class StationSet(ABC):
     ## NEW STUFF
 
     def read_raw_station_data(self, station_id, **kwargs):
-        df = pd.read_csv(
-            os.path.join(
-                self.file_handler.raw_data_path,
-                f'{station_id}.csv'
-            ))
+        local_store = Local(
+            log=self.log,
+            base_folder=self.file_handler.raw_data_path
+        )
+        df = local_store.read(f'{station_id}.csv')
+        self.log.info("read raw station data")
         return df
 
     @abstractmethod
@@ -727,12 +728,12 @@ class StationSet(ABC):
         return ''
 
     # We should write somewhere that processed data should be a dataframe?
-    def local_save(self, folder, file_name, data, enconding=None, **kwargs):
+    def local_save(self, folder, file_name, data, **kwargs):
         local_store = Local(
-            dataset_manager=self,
-            output_folder=folder
+            log=self.log,
+            base_folder=folder
         )
-        return local_store.write(file_name, data, enconding=enconding)
+        return local_store.write(file_name, data)
 
     def save_processed_data(self, processed_dataframe, station_id, **kwargs):
         file_name = f"{self.station_name_formatter(station_id)}.csv"
@@ -745,14 +746,15 @@ class StationSet(ABC):
         self.log.info("wrote station file to {}".format(filepath))
 
     def save_processed_station_metadata(self, processed_station_metadata, station_id, **kwargs):
-        station_filename = f"{self.station_name_formatter(station_id)}.geojson"
-        filepath = self.local_save(
-            self.file_handler.processed_data_path,
-            station_filename,
-            processed_station_metadata,
-            encoding='utf-8'
-        )
-        self.log.info("wrote station geojson metadata to {}".format(filepath))
+        with self.valid_station_metadata(processed_station_metadata):
+            station_filename = f"{self.station_name_formatter(station_id)}.geojson"
+            filepath = self.local_save(
+                self.file_handler.processed_data_path,
+                station_filename,
+                processed_station_metadata,
+                **kwargs
+            )
+            self.log.info("wrote station geojson metadata to {}".format(filepath))
 
     @contextmanager
     def valid_metadata(self, metadata):
@@ -804,25 +806,29 @@ class StationSet(ABC):
             self.log.error(
                 f"Transform single station failed for {station_id}: {str(fse)}")
 
+    @abstractmethod
+    def get_base_metadata(self):
+        """
+        Probably get the old metadata or BASE_OUTPUT_METADATA
+        :return:
+        """
+        pass
+
+    @abstractmethod
+    def get_base_station_geo_metadata(self, station_id):
+        """
+        Probably get the old station geo metadata or BASE_OUTPUT_STATION_METADATA
+        :return:
+        """
+        pass
+
     @staticmethod
-    def get_base_metadata():
-        return BASE_OUTPUT_METADATA
+    def get_date_range_begin(dataframe):
+        return min(dataframe['dt'])
 
-    def get_date_range_begin(self, dataframe):
-        # do something with dataframe get first date?
-        # .isoformat() ?
-        return self.today_with_time.date().isoformat()
-
-    def get_date_range_end(self, dataframe):
-        return self.today_with_time.date().isoformat()
-
-    def get_old_metadata(self):
-        # How to retrieve old metadata by default? s3, ipfs?
-        return None
-
-    def get_old_station_metadata(self):
-        # How to retrieve old metadata by default? s3, ipfs?
-        return None
+    @staticmethod
+    def get_date_range_end(dataframe):
+        return max(dataframe['dt'])
 
     def single_station_parse(self, station_id, metadata, **kwargs):
         with self.check_station_parse_loop(station_id):
@@ -831,7 +837,7 @@ class StationSet(ABC):
             # 2 - Extract any information required for individual station_metadata and put in date range
             raw_station_metadata, processed_dataframe = self.transform_raw_data(raw_dataframe, station_id, **kwargs)
             processed_station_metadata = self.transform_raw_metadata(
-                raw_station_metadata, metadata, processed_dataframe, station_id, **kwargs)
+                raw_station_metadata, metadata, station_id, **kwargs)
             self.save_processed_data(processed_dataframe, station_id, **kwargs)
             self.save_processed_station_metadata(processed_station_metadata, station_id, **kwargs)
 
@@ -855,11 +861,13 @@ class StationSet(ABC):
 
 # For debug purpose, will be removed in the final version
 class TestSet(StationSet):
-    def climate_measurement_span(self):
-        return 'DAILY'
-
     def get_base_metadata(self):
-        metadata = self.get_old_metadata()
+        """
+        Get old in store.read, if does not exist create one based on model
+        :return:
+        """
+        metadata = self.metadata_handler.get_old_metadata()
+        print(f"metadata {metadata}")
         if metadata is None:
             metadata = BASE_OUTPUT_METADATA
             metadata['name'] = "BOM Australia Weather Station Data"
@@ -875,9 +883,14 @@ class TestSet(StationSet):
 
         return metadata
 
-    def transform_raw_data(self, raw_dataframe, station_id, **kwargs):
-        processed_dataframe = raw_dataframe
-        raw_station_metadata = self.get_old_station_metadata()
+    def get_base_station_geo_metadata(self, station_id):
+        """
+        Get old in store.read, if does not exist create one based on model
+        :param station_id:
+        :return:
+        """
+        raw_station_metadata = self.metadata_handler.get_old_station_geo_metadata(station_id)
+        print(f"raw_station_metadata")
         if raw_station_metadata is None:
             raw_station_metadata = BASE_OUTPUT_STATION_METADATA
             feature = raw_station_metadata['features'][0]
@@ -888,21 +901,25 @@ class TestSet(StationSet):
                 "code": self.STATION_DICTIONARY[f'{station_id}']['code'],
                 "country": "",
                 "file name": f"{self.station_name_formatter(station_id)}.csv",
-                "date range": [
-                    self.get_date_range_begin(raw_dataframe),
-                    self.get_date_range_end(raw_dataframe)
-                ],
                 "variables": self.STATION_DICTIONARY[f'{station_id}']['variables']
             }
             feature['properties'] = properties
             raw_station_metadata['features'][0] = feature
 
+        return raw_station_metadata
+
+    def transform_raw_data(self, raw_dataframe, station_id, **kwargs):
+        raw_station_metadata = self.get_base_station_geo_metadata(station_id)
+        raw_station_metadata['date range'] = [
+            self.get_date_range_begin(raw_dataframe),
+            self.get_date_range_end(raw_dataframe)
+        ]
+        processed_dataframe = raw_dataframe
         return raw_station_metadata, processed_dataframe
 
-    def transform_raw_metadata(self, raw_station_metadata, metadata, processed_dataframe, station_id, **kwargs):
+    def transform_raw_metadata(self, raw_station_metadata, metadata, station_id, **kwargs):
         # Changing metadata info based on some external info (raw_station_metadata or processed_data_frame)
         metadata['data dictionary']['1']['unit of measurement'] = 'deg_K'
-
         # station.geojson stuff
         processed_station_metadata = raw_station_metadata
         return processed_station_metadata

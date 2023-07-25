@@ -5,6 +5,7 @@ import os
 import json
 import s3fs
 import fsspec
+from contextlib import contextmanager
 import pandas as pd
 from botocore.session import Session
 from abc import abstractmethod, ABC
@@ -14,8 +15,8 @@ from .ipfs import IPFSIO
 
 class StoreInterface(ABC):
 
-    def __init__(self, dataset_manager=None):
-        self.dm = dataset_manager
+    def __init__(self, log=None):
+        self.log = log
 
     @classmethod
     def name(cls):
@@ -25,43 +26,55 @@ class StoreInterface(ABC):
         return f"{cls.__name__}".lower()
 
     @abstractmethod
-    def has_existing_file(self, station_id) -> bool:
+    def list_directory(self, path):
         pass
 
     @abstractmethod
-    def write(self, file_name: str, content, encoding, **kwargs):
+    def has_existing_file(self, filepath: str) -> bool:
         pass
 
     @abstractmethod
-    def read(self, **kwargs):
+    def write(self, filepath: str, content, encoding=None, **kwargs):
         pass
 
     @abstractmethod
-    def latest_metadata(self, path, **kwargs):
+    def read(self, filepath: str, file_type=None, **kwargs):
         pass
 
-    @abstractmethod
-    def read_csv_from_station(self, path, **kwargs):
-        pass
+    @contextmanager
+    def deal_with_errors(self, filepath):
+        try:
+            yield
+        except FileNotFoundError as e:
+            # Deal specifcally with FileNotFoundError?
+            self.log.warn(
+                "I/O error({0}): {1}. Filepath: {2}".format(e.errno, e.strerror, filepath))
+            # raise e
+        except IOError as e:
+            self.log.warn(
+                "I/O error({0}): {1}. Filepath: {2}".format(e.errno, e.strerror, filepath))
+            # raise e
+        except Exception as e:
+            print(e)
+            self.log.warn("Unexpected error reading or writing file. Filepath: {}".format(filepath))
+            raise e
 
 
 class S3(StoreInterface):
 
     def __init__(
             self,
-            dataset_manager=None,
+            log=None,
             bucket: str = '',
-            credentials_name: str = '',
-            custom_dm_name: str = '',
-            custom_latest_metadata_path: str = ''
+            credentials_name: str = ''
     ):
-
-        super().__init__(dataset_manager)
+        super().__init__(log)
         self.bucket = bucket
         self.creds = Session(profile=credentials_name).get_credentials()
-        self.custom_dm_name = custom_dm_name
-        self.custom_latest_metadata_path = custom_latest_metadata_path
-        self.custom_s3_output_path = None
+        self.base_folder = f"s3://{self.bucket}/"
+
+    def __str__(self) -> str:
+        return self.base_folder
 
     def fs(self, refresh: bool = False) -> s3fs.S3FileSystem:
         if refresh or not hasattr(self, "_fs"):
@@ -71,76 +84,63 @@ class S3(StoreInterface):
                     secret=self.creds.secret_key
                 )
             except KeyError:  # KeyError indicates credentials have not been manually specified
-                self.dm.log.error("S3 credentials not set")
-            self.dm.log.info("Connected to S3 filesystem")
+                self.log.error("S3 credentials not set")
+            self.log.info("Connected to S3 filesystem")
         return self._fs
 
-    def file_outpath(self, file_name) -> str:
-        return os.path.join(
-            self.folder_url,
-            self.dm.file_handler.output_path(omit_root=True),
-            file_name
-        )
-
-    def folder_outpath(self) -> str:
-        if self.custom_s3_output_path:
-            return self.custom_s3_output_path
-
-        return self.folder_url
-
-    def latest_directory(self):
-        if self.custom_dm_name:
-            folder_name = self.custom_dm_name
-        else:
-            folder_name = self.dm.name()
-        path = os.path.join(f"{self.folder_url_without_s3}", folder_name)
-        directories = self.list_directory(path)
-        return sorted(directories)[-1]
-
-    def list_directory(self, path):
+    def list_directory(self, path: str):
         return self.fs().ls(path)
 
     @property
-    def folder_url(self) -> str:
-        return f"s3://{self.folder_url_without_s3}"
-
-    @property
-    def folder_url_without_s3(self):
+    def base_folder_without_s3(self):
         return f"{self.bucket}/"
 
-    def __str__(self) -> str:
-        return self.folder_url
+    def has_existing_file(self, filepath: str) -> bool:
+        """
+        filepath = relative folder path + filename
+        :param filepath:
+        :return:
+        """
+        full_filepath = os.path.join(
+            self.base_folder,
+            filepath
+        )
+        return self.fs().exists(full_filepath)
 
-    def has_existing_file_in_dm_folder(self, file_name) -> bool:
-        return self.fs().exists(self.file_outpath(file_name))
+    def has_existing_file_full_path(self, filepath):
+        """
+        filepath = s3 + bucket + relative folder path + filename
+        :param filepath:
+        :return:
+        """
+        return self.fs().exists(filepath)
 
-    def has_existing_file(self, file_path):
-        return self.fs().exists(file_path)
+    def cp_folder_to_remote(self, local_path: str):
+        s3_folder_path = self.base_folder
+        with self.deal_with_errors(local_path):
+            self.fs().put(local_path, s3_folder_path, recursive=True)
+            raise "ERROR TEST"
+            return s3_folder_path
 
-    def cp_local_folder_to_remote(self):
-        filesystem = self.fs()
-        local_path = self.dm.file_handler.output_path()
-        s3_path = self.folder_outpath()
-        try:
-            filesystem.put(local_path, s3_path, recursive=True)
-            return s3_path
-        except IOError as e:
-            self.dm.log.error("I/O error({0}): {1}. local_path: {2} s3_path: {3}"
-                              .format(e.errno, e.strerror, local_path, s3_path))
-            raise e
-        except Exception as e:
-            self.dm.log.error("Unexpected error writing station file")
-            raise e
+    def write(self, filepath: str, content, encoding=None, **kwargs):
+        """
+        filepath = relative folder path + filename
+        :param filepath:
+        :param content:
+        :param encoding:
+        :param kwargs:
+        :return:
+        """
+        full_filepath = os.path.join(
+            self.base_folder,
+            filepath
+        )
 
-    def write(self, file_name: str, content, encoding=None, **kwargs):
-        pass
+        with self.deal_with_errors(full_filepath):
+            if isinstance(content, dict):
+                encoding = 'utf-8'
 
-    def write_file(self, file_name: str, content, encoding=None, **kwargs):
-        filesystem = self.fs()
-        filepath = self.file_outpath(file_name)
-
-        try:
-            with filesystem.open(filepath, 'w', encoding=encoding) as f:
+            with self.fs().open(full_filepath, 'w', encoding=encoding) as f:
                 if isinstance(content, dict):
                     json.dump(content, f, sort_keys=False,
                               ensure_ascii=False, indent=4)
@@ -148,94 +148,95 @@ class S3(StoreInterface):
                     content.to_csv(f, index=False)
                 else:
                     raise Exception("Content file not identified")
-        except IOError as e:
-            self.dm.log.error(
-                "I/O error({0}): {1}".format(e.errno, e.strerror))
-            raise e
-        except Exception as e:
-            self.dm.log.error("Unexpected error writing station file")
-            raise e
 
         return filepath
 
-    def read(self, filepath: str, file_type=None):
+    def read(self, filepath: str, file_type=None, **kwargs):
         if file_type is None:
             file_type = filepath.split(".")[-1]
 
-        try:
-            with self.fs().open(filepath, 'r') as f:
-                if file_type == 'csv':
-                    csv = pd.read_csv(f)
-                    return csv
-                elif file_type == 'json' or file_type == 'geojson':
-                    return json.load(f)
-                else:
-                    raise Exception('Could not identify file type')
-        except FileNotFoundError:
-            # warning logged in StationSet get_historical_dataframe
-            return None
+        full_filepath = os.path.join(
+            self.base_folder,
+            filepath
+        )
 
-    def latest_metadata(self, path: str, **kwargs):
-        self.dm.log.info(f"getting latest metadata")
-        try:
-            if self.custom_latest_metadata_path:
-                directory = self.custom_latest_metadata_path
-            else:
-                directory = self.latest_directory()
-            file = f"{directory}/{path}"
-            metadata_file = self.read(file)
-        except IndexError:
-            metadata_file = None
+        with self.deal_with_errors(full_filepath):
+            if self.has_existing_file_full_path(full_filepath):
+                with self.fs().open(full_filepath, 'r') as f:
+                    if file_type == 'csv':
+                        csv = pd.read_csv(f)
+                        return csv
+                    elif file_type == 'json' or file_type == 'geojson':
+                        return json.load(f)
+                    else:
+                        raise Exception('File type not identified')
 
-        if metadata_file is None:
-            self.dm.log.warn(f"old metadata could not be found")
-        else:
-            self.dm.log.info(f"old metadata found in {file}")
-        return metadata_file
-
-    def read_csv_from_station(self, path, **kwargs):
-        if self.creds.access_key is None or self.creds.secret_key is None:
-            return
-
-        path = f'{self.bucket}/{path}'
-        try:
-            csv = pd.read_csv(path, storage_options={
-                "key": self.creds.access_key, "secret": self.creds.secret_key})
-            return csv
-        except FileNotFoundError:
-            # warning logged in StationSet get_historical_dataframe
-            return None
+    # def latest_metadata(self, path: str, **kwargs):
+    #     self.log.info(f"getting latest metadata")
+    #     try:
+    #         if self.custom_latest_metadata_path:
+    #             directory = self.custom_latest_metadata_path
+    #         else:
+    #             directory = self.latest_directory()
+    #         file = f"{directory}/{path}"
+    #         metadata_file = self.read(file)
+    #     except IndexError:
+    #         metadata_file = None
+    #
+    #     if metadata_file is None:
+    #         self.log.warn(f"old metadata could not be found")
+    #     else:
+    #         self.log.info(f"old metadata found in {file}")
+    #     return metadata_file
 
 
 class Local(StoreInterface):
     def __init__(
             self,
-            dataset_manager=None,
-            custom_latest_metadata_path: str = '',
-            output_folder=None
+            log=None,
+            base_folder=None
     ):
-        super().__init__(dataset_manager)
-        self.custom_latest_metadata_path = custom_latest_metadata_path
-        self.output_folder = output_folder
+        super().__init__(log)
+        self.base_folder = base_folder
+
+    def __str__(self) -> str:
+        return self.base_folder
 
     def fs(self, refresh: bool = False) -> fsspec.implementations.local.LocalFileSystem:
         if refresh or not hasattr(self, "_fs"):
             self._fs = fsspec.filesystem("file")
         return self._fs
 
-    def __str__(self) -> str:
-        return str(self.output_folder)
+    def list_directory(self, path: str):
+        # ToDo
+        return None
 
-    def has_existing_file(self, file_name) -> bool:
-        return os.path.exists(os.path.join(self.output_folder, file_name))
+    def has_existing_file(self, filepath: str) -> bool:
+        return self.fs().exists(filepath)
+        # full_filepath = os.path.join(
+        #     self.base_folder,
+        #     filepath
+        # )
+        # return os.path.exists(full_filepath)
 
-    def write(self, file_name: str, content, encoding=None, **kwargs):
-        filesystem = self.fs()
+    def has_existing_file_full_path(self, filepath):
+        """
+        filepath = s3 + bucket + relative folder path + filename
+        :param filepath:
+        :return:
+        """
+        return self.fs().exists(filepath)
 
-        filepath = os.path.join(self.output_folder, file_name)
+    def write(self, filepath: str, content, encoding=None, **kwargs):
+        full_filepath = os.path.join(
+            self.base_folder,
+            filepath
+        )
 
-        try:
-            with filesystem.open(filepath, 'w', encoding=encoding) as f:
+        with self.deal_with_errors(full_filepath):
+            if isinstance(content, dict):
+                encoding = 'utf-8'
+            with self.fs().open(full_filepath, 'w', encoding=encoding) as f:
                 if isinstance(content, dict):
                     json.dump(content, f, sort_keys=False,
                               ensure_ascii=False, indent=4)
@@ -244,48 +245,54 @@ class Local(StoreInterface):
                 else:
                     # make this a better error
                     raise Exception("Content file not identified")
-        except IOError as e:
-            self.dm.log.error(
-                "I/O error({0}): {1}".format(e.errno, e.strerror))
-            raise e
-        except Exception as e:
-            self.dm.log.error("Unexpected error writing station file")
-            raise e
 
         return filepath
 
-    def read(self):
-        pass
+    def read(self, filepath: str, file_type=None, **kwargs):
+        if file_type is None:
+            file_type = filepath.split(".")[-1]
 
-    def metadata_by_filesystem(self, directory, path):
-        '''
-        Get metadata from local filesystem by passing in a root folder path
-        '''
-        metadata_path = os.path.join(directory, path)
-        self.dm.log.info(f"getting metadata from {metadata_path}")
-        if os.path.exists(metadata_path):
-            with open(metadata_path, "rt") as metadata:
-                return json.load(metadata)
-        else:
-            self.dm.log.warn(f"no metadata file found at {metadata_path}")
+        full_filepath = os.path.join(
+            self.base_folder,
+            filepath
+        )
 
-    def latest_metadata(self, path, **kwargs):
-        self.dm.log.info(f"getting latest metadata")
-        if self.custom_latest_metadata_path:
-            directory = self.custom_latest_metadata_path
-        else:
-            directory = self.folder_path
-        metadata_file = self.metadata_by_filesystem(
-            directory=directory, path=path)
-        if metadata_file is None:
-            self.dm.log.warn(f"old metadata could not be found")
-        else:
-            self.dm.log.info(f"old metadata found")
-        return metadata_file
+        with self.deal_with_errors(full_filepath):
+            if self.has_existing_file_full_path(full_filepath):
+                with self.fs().open(full_filepath, 'r') as f:
+                    if file_type == 'csv':
+                        csv = pd.read_csv(f)
+                        return csv
+                    elif file_type == 'json' or file_type == 'geojson':
+                        return json.load(f)
+                    else:
+                        raise Exception('File type not identified')
 
-    def read_csv_from_station(self, path, **kwargs):
-        # ToDo: Read this file locally
-        return None
+    # def metadata_by_filesystem(self, directory, path):
+    #     '''
+    #     Get metadata from local filesystem by passing in a root folder path
+    #     '''
+    #     metadata_path = os.path.join(directory, path)
+    #     self.dm.log.info(f"getting metadata from {metadata_path}")
+    #     if os.path.exists(metadata_path):
+    #         with open(metadata_path, "rt") as metadata:
+    #             return json.load(metadata)
+    #     else:
+    #         self.dm.log.warn(f"no metadata file found at {metadata_path}")
+    #
+    # def latest_metadata(self, path, **kwargs):
+    #     self.dm.log.info(f"getting latest metadata")
+    #     if self.custom_latest_metadata_path:
+    #         directory = self.custom_latest_metadata_path
+    #     else:
+    #         directory = self.folder_path
+    #     metadata_file = self.metadata_by_filesystem(
+    #         directory=directory, path=path)
+    #     if metadata_file is None:
+    #         self.dm.log.warn(f"old metadata could not be found")
+    #     else:
+    #         self.dm.log.info(f"old metadata found")
+    #     return metadata_file
 
 
 class IPFS(StoreInterface):
@@ -299,10 +306,7 @@ class IPFS(StoreInterface):
         super().__init__(dataset_manager)
         self.ipfs_io = IPFSIO()
 
-    def has_existing_file(self, station_id) -> bool:
-        pass
-
-    def file_outpath(self, file_name) -> str:
+    def has_existing_file(self, filepath) -> bool:
         pass
 
     def _read_hashes_file(self, path, encoding='utf-8'):
@@ -480,20 +484,17 @@ class IPFS(StoreInterface):
         directory_cid = self.latest_directory_hash(key)
         return directory_cid
 
-    def latest_metadata(self, path, **kwargs):
-        self.dm.log.info(f"getting latest metadata")
-        directory_cid = self.latest_hash()
-        files = self.list_directory_files(directory_cid)
-        metadata_file = next(
-            (file for file in files if file['Name'] == path), None)
-        metadata_hash = metadata_file['Hash']
-        if metadata_file is None:
-            self.dm.log.warn(f"old metadata could not be found")
-        else:
-            self.dm.log.info(
-                f"old metadata found in {path} on hash {metadata_hash}")
-        return self.cat(metadata_hash)
+    # def latest_metadata(self, path, **kwargs):
+    #     self.dm.log.info(f"getting latest metadata")
+    #     directory_cid = self.latest_hash()
+    #     files = self.list_directory_files(directory_cid)
+    #     metadata_file = next(
+    #         (file for file in files if file['Name'] == path), None)
+    #     metadata_hash = metadata_file['Hash']
+    #     if metadata_file is None:
+    #         self.dm.log.warn(f"old metadata could not be found")
+    #     else:
+    #         self.dm.log.info(
+    #             f"old metadata found in {path} on hash {metadata_hash}")
+    #     return self.cat(metadata_hash)
 
-    def read_csv_from_station(self, path, **kwargs):
-        # ToDo: Read this file in IPFS
-        return None
