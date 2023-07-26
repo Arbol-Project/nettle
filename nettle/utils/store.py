@@ -55,7 +55,6 @@ class StoreInterface(ABC):
                 "I/O error({0}): {1}. Filepath: {2}".format(e.errno, e.strerror, filepath))
             # raise e
         except Exception as e:
-            print(e)
             self.log.warn("Unexpected error reading or writing file. Filepath: {}".format(filepath))
             raise e
 

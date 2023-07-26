@@ -14,15 +14,24 @@ class DateHandler:
     SPAN_YEARLY = "yearly"
     SPAN_SEASONAL = "seasonal"
 
+    # @staticmethod
+    # def convert_date_range(date_range):
+    #     '''
+    #     Convert a JSON text/isoformat date range into a python datetime object range
+    #     '''
+    #     if re.match(".+/.+/.+", date_range[0]):
+    #         start, end = [datetime.datetime.strptime(
+    #             d, DateHandler.DATE_FORMAT_METADATA) for d in date_range]
+    #     else:
+    #         start, end = [datetime.datetime.fromisoformat(
+    #             d) for d in date_range]
+    #     return start, end
+
     @staticmethod
-    def convert_date_range(date_range):
-        '''
-        Convert a JSON text/isoformat date range into a python datetime object range
-        '''
-        if re.match(".+/.+/.+", date_range[0]):
-            start, end = [datetime.datetime.strptime(
-                d, DateHandler.DATE_FORMAT_METADATA) for d in date_range]
-        else:
-            start, end = [datetime.datetime.fromisoformat(
-                d) for d in date_range]
-        return start, end
+    def convert_date_range_str_to_date(begin_date: str, end_date: str) -> tuple[datetime.date, datetime.date]:
+        return datetime.datetime.strptime(begin_date, '%Y-%m-%d').date(), \
+            datetime.datetime.strptime(end_date, '%Y-%m-%d').date()
+
+    @staticmethod
+    def convert_date_range_date_to_str(begin_date: datetime.date, end_date:datetime.date) -> tuple[str, str]:
+        return begin_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d')

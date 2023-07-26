@@ -7,7 +7,6 @@ BASE_OUTPUT_METADATA = {
     "tags": [],
     "time generated": "",
     "previous hash": None,
-    "date range": [],
     "data dictionary": {
     }
 }
