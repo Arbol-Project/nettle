@@ -23,6 +23,7 @@ from .metadata.metadata_handler import MetadataHandler
 from .metadata.validators import metadata_validator
 from .metadata.validators import station_metadata_validator
 from .dataframe.validators import dataframe_validator
+from .dataframe.validators import DataframeValidationErrors
 
 
 class StationSet(ABC):
@@ -744,11 +745,19 @@ class StationSet(ABC):
     ) -> dict:
         pass
 
-    @staticmethod
     def validate_processed_dataframe(
+            self,
             processed_dataframe: pd.DataFrame
     ) -> None:
-        dataframe_validator.validate(processed_dataframe, lazy=True)
+        try:
+            dataframe_validator.validate(processed_dataframe, lazy=True)
+        except DataframeValidationErrors as err:
+            self.log.error(
+                f"Dataframe Validation Errors: "
+                f"\n{err.failure_cases}"         # dataframe of schema errors
+                f"\n{self.log.error(err.data)}" # invalid dataframe
+            )
+
 
     def save_processed_data(
             self,

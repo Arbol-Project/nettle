@@ -1,7 +1,8 @@
 from pandera import Column
 from pandera import DataFrameSchema
+from pandera.errors import SchemaErrors as DataframeValidationErrors
 from pandera import Check
-from pandera import Date
+from pandera.engines.pandas_engine import Date
 
 # required=True by default
 # nullable=False by default
