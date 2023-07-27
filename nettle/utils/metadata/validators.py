@@ -41,39 +41,55 @@ metadata_schema = {
     }
 }
 
-# First value in variables should be dt
-station_metadata_variables_schema = {
-    "0": {
-        'type': 'dict',
-        'schema': {
-            'column name': {
-                'type': 'string',
-                'required': True,
-                'allowed': ['dt']
-            }
-        }
+
+# function for ensuring API names are uppercase
+def api_uppercase_check(field, value, error):
+    if value.upper() != value:
+        error(
+            field, f"api name should be uppercase, try {value.upper()} instead of {value}")
+
+
+# variable key "0" in your variables dict should follow this schema
+variable_schema_0 = {
+    'column name': {
+        'type': 'string',
+        'required': True,
+        'allowed': ['dt']
+    },
+    'unit of measurement': {
+        'type': 'string',
+        'required': True
+    },
+    'na value': {
+        'type': 'string',
+        'required': True
+    },
+    'api name': {
+        'required': False
     }
 }
 
-# All values in variables should have column name, unit of measurement and na value
-# All but the first should also have api name but unsure how to implement this
-station_metadata_variables_valuesrules = {
-    'type': 'dict',
-    'schema': {
-        'column name': {
-            'type': 'string',
-            'required': True
-        },
-        'unit of measurement': {
-            'type': 'string',
-            'required': True
-        },
-        'na value': {
-            'type': 'string',
-            'required': True
-        }
+
+# all other variables should follow this schema
+variable_schema_else = {
+    'column name': {
+        'type': 'string',
+        'required': True
+    },
+    'unit of measurement': {
+        'type': 'string',
+        'required': True
+    },
+    'na value': {
+        'type': 'string',
+        'required': True
+    },
+    'api name': {
+        'required': True,
+        'check_with': api_uppercase_check
     }
 }
+
 
 station_metadata_features_schema = {
     'type': 'dict',
@@ -102,13 +118,16 @@ station_metadata_features_schema = {
                 'variables': {
                     'type': 'dict',
                     'required': True,
-                    'schema': station_metadata_variables_schema,
-                    'valuesrules': station_metadata_variables_valuesrules
-                },
+                    'valuesrules': {
+                        'type': 'dict',
+                        'oneof_schema': [variable_schema_0, variable_schema_else]
+                    }
+                }
             }
         }
     }
 }
+
 
 station_metadata_schema = {
     'type': {
@@ -122,6 +141,7 @@ station_metadata_schema = {
         'schema': station_metadata_features_schema
     }
 }
+
 
 metadata_validator = Validator(metadata_schema, allow_unknown=True)
 station_metadata_validator = Validator(
