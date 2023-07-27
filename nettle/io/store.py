@@ -9,7 +9,7 @@ from contextlib import contextmanager
 import pandas as pd
 from botocore.session import Session
 from abc import abstractmethod, ABC
-from . import settings
+from nettle.utils import settings
 from .ipfs import IPFSIO
 
 

@@ -9,21 +9,20 @@ import datetime
 import os
 import pandas as pd
 import time
-import copy
 import re
 from contextlib import contextmanager
+from .io.file_handler import FileHandler
+from .io.store import Local
 from .utils.log_info import LogInfo
-from .utils.file_handler import FileHandler
-from .utils.metadata_handler import MetadataHandler
 from .utils.date_handler import DateHandler
-from .utils.geo_json_handler import GeoJsonHandler
-from .utils.store import Local
-from .utils.errors.custom_errors import FailedStationException
-from .utils.errors.custom_errors import MetadataInvalidException
-from .utils.metadata.bases import BASE_OUTPUT_METADATA
-from .utils.metadata.bases import BASE_OUTPUT_STATION_METADATA
-from .utils.metadata.validators import metadata_validator
-from .utils.metadata.validators import station_metadata_validator
+from .errors.custom_errors import FailedStationException
+from .errors.custom_errors import MetadataInvalidException
+from .metadata.bases import BASE_OUTPUT_METADATA
+from .metadata.bases import BASE_OUTPUT_STATION_METADATA
+from .metadata.metadata_handler import MetadataHandler
+from .metadata.validators import metadata_validator
+from .metadata.validators import station_metadata_validator
+from .dataframe.validators import dataframe_validator
 
 
 class StationSet(ABC):
@@ -78,7 +77,6 @@ class StationSet(ABC):
                                                 self.store,
                                                 self.local_store,
                                                 self.log)
-        self.geo_json_handler = GeoJsonHandler(self.file_handler, self.log)
 
         # If needed a custom name call it again using
         # get_station_dict(dict_name='custom_name')
@@ -746,12 +744,19 @@ class StationSet(ABC):
     ) -> dict:
         pass
 
+    @staticmethod
+    def validate_processed_dataframe(
+            processed_dataframe: pd.DataFrame
+    ) -> None:
+        dataframe_validator.validate(processed_dataframe, lazy=True)
+
     def save_processed_data(
             self,
             processed_dataframe: pd.DataFrame,
             station_id: str,
             **kwargs
     ) -> None:
+        self.validate_processed_dataframe(processed_dataframe)
         # ToDo: We should check the date range, if differs we get the dataframe from s3 and
         # update locally if still doesnt match we dispatch an error
         self.save_processed_dataframe(processed_dataframe, station_id, **kwargs)
@@ -862,7 +867,7 @@ class StationSet(ABC):
     @staticmethod
     def get_date_range_from_metadata(
             station_metadata: dict
-    ) -> tuple[datetime.date, datetime.date]:
+    ) -> tuple[datetime.date, datetime.date] | tuple[None, None]:
         if station_metadata['features'][0]['properties']['date range']:
             date_begin_str = station_metadata['features'][0]['properties']['date range'][0]
             date_end_str = station_metadata['features'][0]['properties']['date range'][1]
@@ -980,6 +985,8 @@ class TestSet(StationSet):
             raw_station_metadata = BASE_OUTPUT_STATION_METADATA
             feature = raw_station_metadata['features'][0]
             feature['geometry'] = self.STATION_DICTIONARY[f'{station_id}']['geometry']
+
+            # ToDo: For each self.STATION_DICTIONARY[f'{station_id}']['variables'] Get it from DATA_DICTIONARY
             properties = {
                 "station name": f"{station_id}",
                 "previous hash": None,
@@ -987,7 +994,7 @@ class TestSet(StationSet):
                 "country": "",
                 "file name": f"{self.station_name_formatter(station_id)}.csv",
                 "date range": [],
-                "variables": self.STATION_DICTIONARY[f'{station_id}']['variables']
+                "variables": self.DATA_DICTIONARY # ToDo: Change this
             }
             feature['properties'] = properties
             raw_station_metadata['features'][0] = feature
