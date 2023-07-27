@@ -750,12 +750,16 @@ class StationSet(ABC):
             processed_dataframe: pd.DataFrame
     ) -> None:
         try:
+            # lazy=true report all the issues at once so that we can take action on them
+            # remove lazy=true it so whenever throws an exception it matches an issue in the data frame
             dataframe_validator.validate(processed_dataframe, lazy=True)
         except DataframeValidationErrors as err:
+            # err.failure_cases - dataframe of schema errors
+            # err.data - invalid dataframe
             self.log.error(
                 f"Dataframe Validation Errors: "
-                f"\n{err.failure_cases}"         # dataframe of schema errors
-                f"\n{self.log.error(err.data)}" # invalid dataframe
+                f"\n{err.failure_cases}"         
+                f"\n{err.data}"
             )
 
 
@@ -766,8 +770,7 @@ class StationSet(ABC):
             **kwargs
     ) -> None:
         self.validate_processed_dataframe(processed_dataframe)
-        # ToDo: We should check the date range, if differs we get the dataframe from s3 and
-        # update locally if still doesnt match we dispatch an error
+        # processed_dataframe = self.merge_processed_dataframe_with_remote_old_dataframe(processed_dataframe, station_id)
         self.save_processed_dataframe(processed_dataframe, station_id, **kwargs)
 
     def save_processed_dataframe(
@@ -954,6 +957,52 @@ class StationSet(ABC):
         begin_date = min(dataframe_date_begin, metadata_date_begin) if metadata_date_begin else dataframe_date_begin
         end_date = max(dataframe_end_date, metadata_date_end) if metadata_date_end else dataframe_end_date
         return DateHandler.convert_date_range_date_to_str(begin_date, end_date)
+
+    def merge_processed_dataframe_with_remote_old_dataframe(
+            self,
+            processed_dataframe: pd.DataFrame,
+            station_id: str
+    ) -> pd.DataFrame:
+        self.log.info("combining old data to new data")
+        try:
+            old_df = self.store.read(f'{station_id}.csv')
+            if not old_df:
+                raise FileNotFoundError
+            # old_df['dt'] = [datetime.datetime.strptime(
+            #     x, '%Y-%m-%d') for x in old_df['dt']]
+            # old_df['order'] = 0
+        except FileNotFoundError:
+            self.log.warn(f"Could not find old dataframe {station_id}.csv on {self.store.base_folder}")
+            old_df = pd.DataFrame()
+
+        # combine the two
+        df = pd.concat([old_df, processed_dataframe])
+        print('df')
+        print(df)
+        # joiner_df = df[['dt']].groupby(
+        #     'dt', as_index=False)
+        joiner_df = df
+        final_df = pd.merge(joiner_df, df,
+                            how='left', on=['dt'])
+        final_df.sort_values(by='dt', ascending=True,
+                             inplace=True, ignore_index=True)
+
+        print('old_df')
+        print(old_df)
+        print('processed_dataframe')
+        print(processed_dataframe)
+
+        properties = list(old_df.columns)
+
+        print('properties')
+        print(properties)
+        print('final_df[properties]')
+        print(final_df[properties])
+
+        final_df = final_df[properties]
+        final_df.drop_duplicates(subset='dt', inplace=True, ignore_index=True)
+
+        return final_df
 
 # For debug purpose, will be removed in the final version
 class TestSet(StationSet):

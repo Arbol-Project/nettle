@@ -4,12 +4,13 @@ from pandera.errors import SchemaErrors as DataframeValidationErrors
 from pandera import Check
 from pandera.engines.pandas_engine import Date
 
-# required=True by default
-# nullable=False by default
+
 schema = DataFrameSchema(
     {
+        # required=True by default
+        # nullable=False by default
         # "dt": Column(Date, checks=dt_checks),
-        "dt": Column(Date(to_datetime_kwargs={"format": "%Y-%m-%d"})),
+        "dt": Column(Date(to_datetime_kwargs={"format": "%Y-%m-%d"}), coerce=True),
         "PRCP": Column(float, nullable=True, required=False),
         "TMIN": Column(float, nullable=True, required=False),
         "TMAX": Column(float, nullable=True, required=False),
