@@ -1,40 +1,39 @@
-from pandera import Column
-from pandera import DataFrameSchema
-from pandera.errors import SchemaErrors as DataframeValidationErrors
-from pandera import Check
-from pandera.engines.pandas_engine import Date
+import pandas as pd
+from nettle.errors.custom_errors import DataframeInvalidException
 
+class DataframeValidator:
+    @staticmethod
+    def df_columns_not_in_dict(
+            dataframe: pd.DataFrame,
+            data_dict: dict
+    ):
+        df_properties = list(dataframe.columns)
+        data_dict_properties = [v["column name"] for v in data_dict.values()]
+        return [x for x in df_properties if x not in data_dict_properties]
 
-schema = DataFrameSchema(
-    {
-        # required=True by default
-        # nullable=False by default
-        # "dt": Column(Date, checks=dt_checks),
-        "dt": Column(Date(to_datetime_kwargs={"format": "%Y-%m-%d"}), coerce=True),
-        "PRCP": Column(float, nullable=True, required=False),
-        "TMIN": Column(float, nullable=True, required=False),
-        "TMAX": Column(float, nullable=True, required=False),
-        "TAVG": Column(float, nullable=True, required=False),
-        "WINDDIR": Column(str, nullable=True, required=False),
-        "WINDSPEED": Column(float, nullable=True, required=False),
-        "RAIN": Column(float, nullable=True, required=False),
-        "SNOW": Column(float, nullable=True, required=False),
-        "SNWD": Column(float, nullable=True, required=False),
-        "WSF5": Column(float, nullable=True, required=False),
-        "WESD": Column(float, nullable=True, required=False),
-        "SEA_SURFACE_TEMPERATURE_WMEAN": Column(float, nullable=True, required=False),
-        "CLIMATOLOGY": Column(float, nullable=True, required=False),
-        "ANOMALIES": Column(float, nullable=True, required=False),
-        "SALINITY_WMEAN": Column(float, nullable=True, required=False),
-    }
-)
+    @staticmethod
+    def not_strings_df_columns(
+            dataframe: pd.DataFrame
+    ):
+        return dataframe.dtypes[dataframe.dtypes != 'object']
 
-# dt_checks = [
-#     # a vectorized check that returns a boolean series
-#     Check(lambda s: s > 0, element_wise=False),
-#
-#     # an element-wise check that returns a bool
-#     Check(lambda x: x > 0, element_wise=True)
-# ]
+    @staticmethod
+    def validate(
+            dataframe: pd.DataFrame,
+            data_dict: dict
+    ):
+        # Check if all the elements are in data dict
+        diff_properties = DataframeValidator.df_columns_not_in_dict(dataframe, data_dict)
+        if diff_properties:
+            raise DataframeInvalidException(
+                f'Columns in processed dataframe not in data dictionary: {diff_properties}'
+            )
 
-dataframe_validator = schema
+        # Check if all columns are strings
+        not_strings_df_columns = DataframeValidator.not_strings_df_columns(dataframe)
+        if not not_strings_df_columns.empty:
+            raise DataframeInvalidException(
+                f'All dataframes columns needs to be a string. '
+                f'\nThose columns are not strings: \n{not_strings_df_columns}'
+            )
+

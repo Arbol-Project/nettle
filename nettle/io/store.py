@@ -163,7 +163,7 @@ class S3(StoreInterface):
             if self.has_existing_file_full_path(full_filepath):
                 with self.fs().open(full_filepath, 'r') as f:
                     if file_type == 'csv':
-                        csv = pd.read_csv(f)
+                        csv = pd.read_csv(f, dtype=str, na_values="")
                         return csv
                     elif file_type == 'json' or file_type == 'geojson':
                         return json.load(f)
@@ -260,7 +260,7 @@ class Local(StoreInterface):
             if self.has_existing_file_full_path(full_filepath):
                 with self.fs().open(full_filepath, 'r') as f:
                     if file_type == 'csv':
-                        csv = pd.read_csv(f)
+                        csv = pd.read_csv(f, dtype=str, na_values="")
                         return csv
                     elif file_type == 'json' or file_type == 'geojson':
                         return json.load(f)

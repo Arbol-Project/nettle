@@ -17,13 +17,13 @@ from .utils.log_info import LogInfo
 from .utils.date_handler import DateHandler
 from .errors.custom_errors import FailedStationException
 from .errors.custom_errors import MetadataInvalidException
+from .errors.custom_errors import DataframeInvalidException
 from .metadata.bases import BASE_OUTPUT_METADATA
 from .metadata.bases import BASE_OUTPUT_STATION_METADATA
 from .metadata.metadata_handler import MetadataHandler
 from .metadata.validators import metadata_validator
 from .metadata.validators import station_metadata_validator
-from .dataframe.validators import dataframe_validator
-from .dataframe.validators import DataframeValidationErrors
+from .dataframe.validators import DataframeValidator as df_validator
 
 
 class StationSet(ABC):
@@ -744,32 +744,15 @@ class StationSet(ABC):
     ) -> dict:
         pass
 
-    def validate_processed_dataframe(
-            self,
-            processed_dataframe: pd.DataFrame
-    ) -> None:
-        try:
-            # lazy=true report all the issues at once so that we can take action on them
-            # remove lazy=true it so whenever throws an exception it matches an issue in the data frame
-            dataframe_validator.validate(processed_dataframe, lazy=True)
-        except DataframeValidationErrors as err:
-            # err.failure_cases - dataframe of schema errors
-            # err.data - invalid dataframe
-            self.log.error(
-                f"Dataframe Validation Errors: "
-                f"\n{err.failure_cases}"         
-                f"\n{err.data}"
-            )
-
-
     def save_processed_data(
             self,
             processed_dataframe: pd.DataFrame,
             station_id: str,
             **kwargs
     ) -> None:
-        self.validate_processed_dataframe(processed_dataframe)
-        # processed_dataframe = self.merge_processed_dataframe_with_remote_old_dataframe(processed_dataframe, station_id)
+        processed_dataframe = self.combine_processed_dataframe_with_remote_old_dataframe(
+            processed_dataframe, station_id
+        )
         self.save_processed_dataframe(processed_dataframe, station_id, **kwargs)
 
     def save_processed_dataframe(
@@ -893,6 +876,29 @@ class StationSet(ABC):
                 return DateHandler.convert_date_range_str_to_date(date_begin_str, date_end_str)
         return None, None
 
+    def validate_processed_dataframe(
+            self,
+            processed_dataframe: pd.DataFrame
+    ) -> None:
+        try:
+            df_validator.validate(processed_dataframe, self.DATA_DICTIONARY)
+        except DataframeInvalidException as die:
+            self.log.error(f"Processed dataframe not validated: {str(die)}")
+            raise die
+
+    def update_station_metadata_variables(
+            self,
+            processed_dataframe: pd.DataFrame,
+            processed_station_metadata: dict,
+            **kwargs
+    ) -> None:
+        self.validate_processed_dataframe(processed_dataframe)
+
+        df_properties = list(processed_dataframe.columns)
+        # Get the data dict properties that exist in processed_dataframe
+        variables = {key: value for key, value in self.DATA_DICTIONARY.items() if value["column name"] in df_properties}
+        processed_station_metadata["features"][0]["properties"]["variables"] = variables
+
     def single_station_parse(
             self,
             station_id: str,
@@ -903,8 +909,8 @@ class StationSet(ABC):
             # 1 - Get raw_data in the final format for processed_data
             # 2 - Extract any information required for individual station_metadata and put in date range
             raw_station_metadata, processed_dataframe = self.transform_raw_data(raw_dataframe, station_id, **kwargs)
-            processed_station_metadata = self.transform_raw_metadata(
-                raw_station_metadata, station_id, **kwargs)
+            processed_station_metadata = self.transform_raw_metadata(raw_station_metadata, station_id, **kwargs)
+            self.update_station_metadata_variables(processed_dataframe, processed_station_metadata, **kwargs)
             self.save_processed_data(processed_dataframe, station_id, **kwargs)
             self.save_processed_station_metadata(processed_station_metadata, station_id, **kwargs)
 
@@ -963,53 +969,48 @@ class StationSet(ABC):
         end_date = max(dataframe_end_date, metadata_date_end) if metadata_date_end else dataframe_end_date
         return DateHandler.convert_date_range_date_to_str(begin_date, end_date)
 
-    def merge_processed_dataframe_with_remote_old_dataframe(
+    def combine_processed_dataframe_with_remote_old_dataframe(
             self,
             processed_dataframe: pd.DataFrame,
             station_id: str
     ) -> pd.DataFrame:
-        # ToDo: Check if date range is different with daterange
+        # self.log.info("check if needs to combine old data to new data")
+        # dataframe_date_begin, dataframe_end_date = self.get_date_range_from_dataframe(processed_dataframe)
+        # metadata_date_begin, metadata_date_end = self.get_date_range_from_metadata(station_metadata)
+        # begin_date = min(dataframe_date_begin, metadata_date_begin) if metadata_date_begin else dataframe_date_begin
+        # end_date = max(dataframe_end_date, metadata_date_end) if metadata_date_end else dataframe_end_date
+        #
+        # if dataframe_date_begin != begin_date or dataframe_end_date != end_date:
 
-        self.log.info("combining old data to new data")
+        self.log.info("it needs.combining old data to new data")
         filename = f'{station_id}.csv'
         old_df = self.store.read(os.path.join(self.file_handler.relative_path, filename))
+
+        # order define the priority of which df should keep the row in case they have the same date
+        # In this case processed has the priority
+        processed_dataframe['order'] = 1
         if old_df is None:
             self.log.warn(f"Could not find old dataframe {station_id}.csv on {self.store.base_folder}")
             old_df = pd.DataFrame()
+
         else:
-            pass
-            # old_df['dt'] = [datetime.datetime.strptime(
-            #     x, '%Y-%m-%d') for x in old_df['dt']]
-            # old_df['order'] = 0
+            old_df['order'] = 0
+            # processed_dataframe = processed_dataframe.astype({'dt': 'datetime64[ns]'})
+            # old_df = old_df.astype({'dt': 'datetime64[ns]'})
 
         # combine the two
         df = pd.concat([old_df, processed_dataframe])
-        print('df')
-        print(df)
-        # joiner_df = df[['dt']].groupby(
-        #     'dt', as_index=False)
-        joiner_df = df
+        joiner_df = df[['dt', 'order']].groupby(
+            'dt', as_index=False).max('order')
         final_df = pd.merge(joiner_df, df,
-                            how='left', on=['dt'])
+                            how='left', on=['dt', 'order'])
         final_df.sort_values(by='dt', ascending=True,
                              inplace=True, ignore_index=True)
-
-        print('final_df')
-        print(final_df)
-        print('old_df')
-        print(old_df)
-        print('processed_dataframe')
-        print(processed_dataframe)
-
-        properties = list(old_df.columns)
-
-        print('properties')
-        print(properties)
-        print('final_df[properties]')
-        print(final_df[properties])
-
-        final_df = final_df[properties]
+        final_df = final_df.drop(columns=['order'])
         final_df.drop_duplicates(subset='dt', inplace=True, ignore_index=True)
+
+        # else:
+        #     final_df = processed_dataframe
 
         return final_df
 
@@ -1060,8 +1061,7 @@ class TestSet(StationSet):
                 "code": self.STATION_DICTIONARY[f'{station_id}']['code'],
                 "country": "",
                 "file name": f"{self.station_name_formatter(station_id)}.csv",
-                "date range": [],
-                "variables": self.DATA_DICTIONARY # ToDo: Change this
+                "date range": []
             }
             feature['properties'] = properties
             raw_station_metadata['features'][0] = feature
