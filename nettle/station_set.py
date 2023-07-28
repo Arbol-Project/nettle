@@ -722,8 +722,7 @@ class StationSet(ABC):
             station_id: str,
             **kwargs
     ) -> pd.DataFrame:
-        self.local_store.base_folder = self.file_handler.RAW_DATA_PATH
-        df = self.local_store.read(f'{station_id}.csv')
+        df = self.local_store.read(os.path.join(self.file_handler.RAW_DATA_PATH, f'{station_id}.csv'))
         self.log.info("read raw station data")
         return df
 
@@ -780,8 +779,10 @@ class StationSet(ABC):
             **kwargs
     ) -> None:
         file_name = f"{self.station_name_formatter(station_id)}.csv"
-        self.local_store.base_folder = self.file_handler.PROCESSED_DATA_PATH
-        filepath = self.local_store.write(file_name, processed_dataframe)
+        filepath = self.local_store.write(
+            os.path.join(self.file_handler.PROCESSED_DATA_PATH, file_name),
+            processed_dataframe
+        )
         self.log.info("wrote station file to {}".format(filepath))
 
     def save_processed_station_metadata(
@@ -792,8 +793,10 @@ class StationSet(ABC):
     ) -> None:
         self.validate_station_metadata(processed_station_metadata)
         station_filename = f"{self.station_name_formatter(station_id)}.geojson"
-        self.local_store.base_folder = self.file_handler.PROCESSED_DATA_PATH
-        filepath = self.local_store.write(station_filename, processed_station_metadata)
+        filepath = self.local_store.write(
+            os.path.join(self.file_handler.PROCESSED_DATA_PATH, station_filename),
+            processed_station_metadata
+        )
         self.log.info("wrote station geojson metadata to {}".format(filepath))
 
     @staticmethod
@@ -816,8 +819,10 @@ class StationSet(ABC):
     ) -> None:
         metadata = self.get_metadata()
         self.validate_metadata(metadata)
-        self.local_store.base_folder = self.file_handler.PROCESSED_DATA_PATH
-        filepath = self.local_store.write(MetadataHandler.METADATA_FILE_NAME, metadata)
+        filepath = self.local_store.write(
+            os.path.join(self.file_handler.PROCESSED_DATA_PATH, MetadataHandler.METADATA_FILE_NAME),
+            metadata
+        )
         self.log.info("wrote metadata to {}".format(filepath))
 
     def get_stations_to_transform(
@@ -924,7 +929,7 @@ class StationSet(ABC):
         old_metadata = self.metadata_handler.get_old_metadata()
         if old_metadata is None:
             # Get old metadata using local_store (Look into processed_data folder)
-            self.local_store.base_folder = self.file_handler.PROCESSED_DATA_PATH
+            self.local_store.base_folder = self.file_handler.PROCESSED_DATA_ROOT
             old_metadata = self.metadata_handler.get_old_metadata(self.local_store)
 
         if old_metadata is None:
@@ -940,7 +945,7 @@ class StationSet(ABC):
 
         if old_station_metadata is None:
             # Get old station metadata using local_store (Look into processed_data folder)
-            self.local_store.base_folder = self.file_handler.PROCESSED_DATA_PATH
+            self.local_store.base_folder = self.file_handler.PROCESSED_DATA_ROOT
             old_station_metadata = self.metadata_handler.get_old_station_geo_metadata(station_id, self.local_store)
 
         if old_station_metadata is None:
@@ -963,17 +968,19 @@ class StationSet(ABC):
             processed_dataframe: pd.DataFrame,
             station_id: str
     ) -> pd.DataFrame:
+        # ToDo: Check if date range is different with daterange
+
         self.log.info("combining old data to new data")
-        try:
-            old_df = self.store.read(f'{station_id}.csv')
-            if not old_df:
-                raise FileNotFoundError
+        filename = f'{station_id}.csv'
+        old_df = self.store.read(os.path.join(self.file_handler.relative_path, filename))
+        if old_df is None:
+            self.log.warn(f"Could not find old dataframe {station_id}.csv on {self.store.base_folder}")
+            old_df = pd.DataFrame()
+        else:
+            pass
             # old_df['dt'] = [datetime.datetime.strptime(
             #     x, '%Y-%m-%d') for x in old_df['dt']]
             # old_df['order'] = 0
-        except FileNotFoundError:
-            self.log.warn(f"Could not find old dataframe {station_id}.csv on {self.store.base_folder}")
-            old_df = pd.DataFrame()
 
         # combine the two
         df = pd.concat([old_df, processed_dataframe])
@@ -987,6 +994,8 @@ class StationSet(ABC):
         final_df.sort_values(by='dt', ascending=True,
                              inplace=True, ignore_index=True)
 
+        print('final_df')
+        print(final_df)
         print('old_df')
         print(old_df)
         print('processed_dataframe')

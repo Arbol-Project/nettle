@@ -83,8 +83,8 @@ class S3(StoreInterface):
                     secret=self.creds.secret_key
                 )
             except KeyError:  # KeyError indicates credentials have not been manually specified
-                self.log.error("S3 credentials not set")
-            self.log.info("Connected to S3 filesystem")
+                self.log.error("s3 credentials not set")
+            self.log.info("connected to S3 filesystem")
         return self._fs
 
     def list_directory(self, path: str):

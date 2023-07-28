@@ -111,8 +111,8 @@ class MetadataHandler:
     def get_data_dict(self, dict_name: str = None):
         return self.get_dict(self.DATA_DICT_FOLDER, dict_name)
 
-    def get_metadata(self, filename, store=None):
-        return store.read(filename)
+    def get_metadata(self, filename: str, store=None):
+        return store.read(os.path.join(self.file_handler.relative_path, filename))
 
     def get_old_station_geo_metadata(self, station: str, store=None):
         if store is None:
