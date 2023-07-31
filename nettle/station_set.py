@@ -51,6 +51,8 @@ class StationSet(ABC):
         self.COLLECTION = collection
         self.DATASET = dataset
         self.log = LogInfo(log, self.name())
+        self.BASE_OUTPUT_METADATA = BASE_OUTPUT_METADATA
+        self.BASE_OUTPUT_STATION_METADATA = BASE_OUTPUT_STATION_METADATA
         if custom_relative_data_path is None:
             relative_path = os.path.join(
                 self.COLLECTION,
