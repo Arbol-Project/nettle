@@ -10,6 +10,7 @@ import os
 import pandas as pd
 import time
 import re
+import json
 from contextlib import contextmanager
 from .io.file_handler import FileHandler
 from .io.store import Local
@@ -68,7 +69,7 @@ class StationSet(ABC):
         self.date_range_handler = DateRangeHandler()
         self.file_handler = FileHandler(relative_path=relative_path)
         self.metadata_handler = MetadataHandler(self.file_handler,
-                                                self.default_dict_path(),
+                                                StationSet.default_dict_path(),
                                                 self.name(),
                                                 self.store,
                                                 self.local_store,
@@ -91,8 +92,9 @@ class StationSet(ABC):
     def __hash__(self):
         return hash(str(self))
 
-    def default_dict_path(self):
-      return os.path.join(os.getcwd())
+    @staticmethod
+    def default_dict_path():
+        return os.path.join(os.getcwd())
 
     @classmethod
     def name(cls):
@@ -264,14 +266,18 @@ class StationSet(ABC):
             metadata: dict
     ):
         if not metadata_validator.validate(metadata):
-            raise MetadataInvalidException(f"Metadata is invalid: {metadata_validator.errors}")
+            # raise MetadataInvalidException(f"Metadata is invalid: {metadata_validator.errors}")
+            raise MetadataInvalidException(
+                f"Metadata is invalid: {json.dumps(metadata_validator.errors, indent=2, default=str)}"
+            )
 
     @staticmethod
     def validate_station_metadata(
             station_metadata: dict
     ):
         if not station_metadata_validator.validate(station_metadata):
-            raise MetadataInvalidException(f"Station metadata is invalid: {station_metadata_validator.errors}")
+            # raise MetadataInvalidException(f"Station metadata is invalid: {station_metadata_validator.errors}")
+            raise MetadataInvalidException(f"Station metadata is invalid: {json.dumps(station_metadata_validator.errors, indent=2, default=str)}")
 
     def save_combined_metadata_files(
             self,

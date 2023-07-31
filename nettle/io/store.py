@@ -192,8 +192,8 @@ class S3(StoreInterface):
 class Local(StoreInterface):
     def __init__(
             self,
-            log=None,
-            base_folder=None
+            log = None,
+            base_folder: str = ''
     ):
         super().__init__(log)
         self.base_folder = base_folder
@@ -266,6 +266,7 @@ class Local(StoreInterface):
                         return json.load(f)
                     else:
                         raise Exception('File type not identified')
+
 
     # def metadata_by_filesystem(self, directory, path):
     #     '''
