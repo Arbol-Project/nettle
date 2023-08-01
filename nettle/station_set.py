@@ -184,6 +184,8 @@ class StationSet(ABC):
             station_id: str,
             **kwargs
     ) -> None:
+        # To check this we need to pass station_metadata which currently doesnt happen
+        # if self.should_combine__dataframe_with_remote_old_dataframe(processed_dataframe, station_metadata):
         processed_dataframe = self.combine_processed_dataframe_with_remote_old_dataframe(
             processed_dataframe, station_id
         )
@@ -352,19 +354,22 @@ class StationSet(ABC):
             self.log.error(f"Processed dataframe not validated: {str(die)}")
             raise die
 
+    def should_combine__dataframe_with_remote_old_dataframe(self,
+            processed_dataframe: pd.DataFrame,
+            station_metadata: dict
+    ) -> bool:
+        self.log.info("check if needs to combine old data to new data")
+        dataframe_date_begin, dataframe_end_date = DateRangeHandler.get_date_range_from_dataframe(processed_dataframe)
+        metadata_date_begin, metadata_date_end = DateRangeHandler.get_date_range_from_metadata(station_metadata)
+        begin_date = min(dataframe_date_begin, metadata_date_begin) if metadata_date_begin else dataframe_date_begin
+        end_date = max(dataframe_end_date, metadata_date_end) if metadata_date_end else dataframe_end_date
+        return dataframe_date_begin != begin_date or dataframe_end_date != end_date
+
     def combine_processed_dataframe_with_remote_old_dataframe(
             self,
             processed_dataframe: pd.DataFrame,
             station_id: str
     ) -> pd.DataFrame:
-        # self.log.info("check if needs to combine old data to new data")
-        # dataframe_date_begin, dataframe_end_date = self.get_date_range_from_dataframe(processed_dataframe)
-        # metadata_date_begin, metadata_date_end = self.get_date_range_from_metadata(station_metadata)
-        # begin_date = min(dataframe_date_begin, metadata_date_begin) if metadata_date_begin else dataframe_date_begin
-        # end_date = max(dataframe_end_date, metadata_date_end) if metadata_date_end else dataframe_end_date
-        #
-        # if dataframe_date_begin != begin_date or dataframe_end_date != end_date:
-
         self.log.info("needs combining old data to new data")
         filename = f'{station_id}.csv'
         old_df = self.store.read(os.path.join(self.file_handler.relative_path, filename))
@@ -392,10 +397,32 @@ class StationSet(ABC):
         final_df = final_df.drop(columns=['order'])
         final_df.drop_duplicates(subset='dt', inplace=True, ignore_index=True)
 
-        # else:
-        #     final_df = processed_dataframe
-
         return final_df
+
+    # extract() Methods
+    def save_raw_dataframe(
+            self,
+            raw_dataframe: pd.DataFrame,
+            station_id: str,
+            **kwargs
+    ) -> None:
+        file_name = f"{self.station_name_formatter(station_id)}.csv"
+        filepath = self.local_store.write(
+            os.path.join(self.file_handler.RAW_DATA_PATH, file_name),
+            raw_dataframe
+        )
+        self.log.info("wrote station file to {}".format(filepath))
+
+    @contextmanager
+    def check_station_extract_loop(
+            self,
+            station_id: str
+    ):
+        try:
+            yield
+        except FailedStationException as fse:
+            self.log.error(f"Update Local Station failed for {station_id}: {str(fse)}")
+
 
 # For debug purpose, will be removed in the final version
 class TestSet(StationSet):
