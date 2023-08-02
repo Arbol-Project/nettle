@@ -114,11 +114,20 @@ class S3(StoreInterface):
         """
         return self.fs().exists(filepath)
 
-    def cp_folder_to_remote(self, local_path: str):
-        s3_folder_path = self.base_folder
+    # relative_s3_path is the directory before the last directory
+    # relative_s3_path usually is just collection name
+    # For example, if you have this: s3://arbol-station-dev/bom2/bom2-daily/metadata.json
+    # relative_s3_path would be: bom2
+    def cp_folder_to_remote(self, local_path: str, relative_s3_path: str):
+        s3_folder_path = os.path.join(self.base_folder, relative_s3_path)
         with self.deal_with_errors(local_path):
-            self.fs().put(local_path, s3_folder_path, recursive=True)
-            raise "ERROR TEST"
+            if not self.has_existing_file_full_path(s3_folder_path):
+                # Hack to create folder and avoid duplicated sub-folder
+                self.fs().touch(os.path.join(s3_folder_path, 'tempCVG2Qy95Jp'))
+                self.fs().put(local_path, s3_folder_path, recursive=True)
+                self.fs().rm(os.path.join(s3_folder_path, 'tempCVG2Qy95Jp'))
+            else:
+                self.fs().put(local_path, s3_folder_path, recursive=True)
             return s3_folder_path
 
     def write(self, filepath: str, content, encoding=None, **kwargs):

@@ -104,6 +104,10 @@ class StationSet(ABC):
         return f"{cls.__name__}".lower()
 
     @abstractmethod
+    def extract(self, **kwargs) -> bool:
+        pass
+
+    @abstractmethod
     def get_metadata(
             self
     ):
@@ -165,9 +169,20 @@ class StationSet(ABC):
             raw_dataframe = self.read_raw_station_data(station_id, **kwargs)
             raw_station_metadata, processed_dataframe = self.transform_raw_data(raw_dataframe, station_id, **kwargs)
             processed_station_metadata = self.transform_raw_metadata(raw_station_metadata, station_id, **kwargs)
+            self.validate_processed_dataframe(processed_dataframe)
             self.programmatic_station_metadata_update(processed_dataframe, processed_station_metadata, **kwargs)
             self.save_processed_data(processed_dataframe, station_id, **kwargs)
+            self.validate_station_metadata(processed_station_metadata)
             self.save_processed_station_metadata(processed_station_metadata, station_id, **kwargs)
+
+    def cp_folder_to_remote_store(
+            self,
+            custom_local_full_path: str = None,
+            custom_s3_relative_path: str = None
+    ) -> None:
+        local_path = self.file_handler.PROCESSED_DATA_PATH if custom_local_full_path is None else custom_local_full_path
+        relative_s3_path = os.path.dirname(self.file_handler.relative_path) if custom_s3_relative_path is None else custom_s3_relative_path
+        return self.store.cp_folder_to_remote(local_path, relative_s3_path)
 
     def read_raw_station_data(
             self,
@@ -210,7 +225,6 @@ class StationSet(ABC):
             station_id: str,
             **kwargs
     ) -> None:
-        self.validate_station_metadata(processed_station_metadata)
         station_filename = f"{self.station_name_formatter(station_id)}.geojson"
         filepath = self.local_store.write(
             os.path.join(self.file_handler.PROCESSED_DATA_PATH, station_filename),
@@ -224,7 +238,6 @@ class StationSet(ABC):
             processed_station_metadata: dict,
             **kwargs
     ) -> None:
-        self.validate_processed_dataframe(processed_dataframe)
         self.update_date_range_in_station_metadata(processed_dataframe, processed_station_metadata)
         self.update_variables_in_station_metadata(processed_dataframe, processed_station_metadata)
 
@@ -397,6 +410,7 @@ class StationSet(ABC):
         final_df = final_df.drop(columns=['order'])
         final_df.drop_duplicates(subset='dt', inplace=True, ignore_index=True)
 
+        self.log.info("combined old data to new data")
         return final_df
 
     # extract() Methods
@@ -422,84 +436,5 @@ class StationSet(ABC):
             yield
         except FailedStationException as fse:
             self.log.error(f"Update Local Station failed for {station_id}: {str(fse)}")
-
-
-# For debug purpose, will be removed in the final version
-class TestSet(StationSet):
-    def get_metadata(
-            self
-    ) -> dict:
-        """
-        Get old in store.read, if does not exist create one based on model
-        :return:
-        """
-        metadata = self.metadata_handler.get_old_metadata()
-        if metadata is None:
-            metadata = BASE_OUTPUT_METADATA
-            metadata['name'] = "BOM Australia Weather Station Data"
-            metadata['data source'] = "www.com"
-            metadata['compression'] = "None"
-            metadata['documentation'] = "Weather data from the Bureau of Meteorology in Australia covering roughly " \
-                                        "500 stations"
-            metadata['tags'] = ["temperature", "rain", "wind", "australia"]
-            metadata['data dictionary'] = self.DATA_DICTIONARY
-
-            if self.store.name() == 'ipfs':
-                metadata["previous hash"] = self.store.latest_hash()
-
-        metadata["time generated"] = str(self.today_with_time)
-        return metadata
-
-    def get_base_station_geo_metadata(
-            self,
-            station_id: str
-    ) -> dict:
-        """
-        Get old in store.read, if does not exist create one based on model
-        :param station_id:
-        :return:
-        """
-        raw_station_metadata = self.metadata_handler.get_old_station_geo_metadata(station_id)
-        if raw_station_metadata is None:
-            raw_station_metadata = BASE_OUTPUT_STATION_METADATA
-            feature = raw_station_metadata['features'][0]
-            feature['geometry'] = self.STATION_DICTIONARY[f'{station_id}']['geometry']
-
-            properties = {
-                "station name": f"{station_id}",
-                "previous hash": None,
-                "code": self.STATION_DICTIONARY[f'{station_id}']['code'],
-                "country": "",
-                "file name": f"{self.station_name_formatter(station_id)}.csv",
-                "date range": []
-            }
-            feature['properties'] = properties
-            raw_station_metadata['features'][0] = feature
-
-        return raw_station_metadata
-
-    def transform_raw_data(
-            self,
-            raw_dataframe: pd.DataFrame,
-            station_id: str,
-            **kwargs
-    ) -> tuple[dict, pd.DataFrame]:
-        raw_station_metadata = self.get_base_station_geo_metadata(station_id)
-
-        # Do changes in dataframe here
-        processed_dataframe = raw_dataframe
-
-        return raw_station_metadata, processed_dataframe
-
-    def transform_raw_metadata(
-            self,
-            raw_station_metadata: dict,
-            station_id: str,
-            **kwargs
-    ) -> dict:
-        # Do change metadata here
-        processed_station_metadata = raw_station_metadata
-
-        return processed_station_metadata
 
 

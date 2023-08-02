@@ -53,13 +53,16 @@ class MetadataHandler:
     ) -> dict:
         # Get old metadata using current store
         old_metadata = self.get_old_metadata_by_store()
-        if old_metadata is None:
-            # Get old metadata using local_store (Look into processed_data folder)
-            self.local_store.base_folder = self.file_handler.PROCESSED_DATA_ROOT
-            old_metadata = self.get_old_metadata_by_store(self.local_store)
+        # get old metadata from local
+        # if old_metadata is None:
+        #     # Get old metadata using local_store (Look into processed_data folder)
+        #     self.local_store.base_folder = self.file_handler.PROCESSED_DATA_ROOT
+        #     old_metadata = self.get_old_metadata_by_store(self.local_store)
 
         if old_metadata is None:
-            self.log.warn(f"Could not find an old metadata")
+            self.log.warn(f"could not find an old metadata")
+        else:
+            self.log.warn(f"old metadata retrieved")
         return old_metadata
 
     def get_old_station_geo_metadata(
@@ -69,11 +72,13 @@ class MetadataHandler:
         # Get old station metadata using current store
         old_station_metadata = self.get_old_station_geo_metadata_by_store(station_id)
 
-        if old_station_metadata is None:
-            # Get old station metadata using local_store (Look into processed_data folder)
-            self.local_store.base_folder = self.file_handler.PROCESSED_DATA_ROOT
-            old_station_metadata = self.get_old_station_geo_metadata_by_store(station_id, self.local_store)
+        # if old_station_metadata is None:
+        #     # Get old station metadata using local_store (Look into processed_data folder)
+        #     self.local_store.base_folder = self.file_handler.PROCESSED_DATA_ROOT
+        #     old_station_metadata = self.get_old_station_geo_metadata_by_store(station_id, self.local_store)
 
         if old_station_metadata is None:
-            self.log.warn(f"Could not find an old station metadata")
+            self.log.warn(f"could not find an old station metadata")
+        else:
+            self.log.warn(f"old station metadata retrieved")
         return old_station_metadata
