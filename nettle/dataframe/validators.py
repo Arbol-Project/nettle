@@ -26,14 +26,14 @@ class DataframeValidator:
         diff_properties = DataframeValidator.df_columns_not_in_dict(dataframe, data_dict)
         if diff_properties:
             raise DataframeInvalidException(
-                f'Columns in processed dataframe not in data dictionary: {diff_properties}'
+                f'[dataframevalidator.validate] columns in processed dataframe not in data dictionary: {diff_properties}'
             )
 
         # Check if all columns are strings
         not_strings_df_columns = DataframeValidator.not_strings_df_columns(dataframe)
         if not not_strings_df_columns.empty:
             raise DataframeInvalidException(
-                f'All dataframes columns needs to be a string. '
-                f'\nThose columns are not strings: \n{not_strings_df_columns}'
+                f'[dataframevalidator.validate] all dataframes columns needs to be a string. '
+                f'\nthose columns are not strings: \n{not_strings_df_columns}'
             )
 

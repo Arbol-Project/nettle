@@ -63,6 +63,8 @@ class StationSet(ABC):
             relative_path = custom_relative_data_path
         self.store = store
         self.store.log = self.log
+        if isinstance(self.store, Local):
+            self.store.base_folder = FileHandler.PROCESSED_DATA_ROOT
         self.local_store = Local(
             log=self.log
         )
@@ -189,8 +191,10 @@ class StationSet(ABC):
             station_id: str,
             **kwargs
     ) -> pd.DataFrame:
-        df = self.local_store.read(os.path.join(self.file_handler.RAW_DATA_PATH, f'{station_id}.csv'))
-        self.log.info("read raw station data")
+        df = self.local_store.read(
+            os.path.join(self.file_handler.RAW_DATA_PATH, f"{self.station_name_formatter(station_id)}.csv")
+        )
+        self.log.info("[read_raw_station_data] read raw station data")
         return df
 
     def save_processed_data(
@@ -217,7 +221,7 @@ class StationSet(ABC):
             os.path.join(self.file_handler.PROCESSED_DATA_PATH, file_name),
             processed_dataframe
         )
-        self.log.info("wrote station file to {}".format(filepath))
+        self.log.info("[save_processed_dataframe] wrote station file to {}".format(filepath))
 
     def save_processed_station_metadata(
             self,
@@ -230,7 +234,7 @@ class StationSet(ABC):
             os.path.join(self.file_handler.PROCESSED_DATA_PATH, station_filename),
             processed_station_metadata
         )
-        self.log.info("wrote station geojson metadata to {}".format(filepath))
+        self.log.info("[save_processed_station_metadata] wrote station geojson metadata to {}".format(filepath))
 
     def programmatic_station_metadata_update(
             self,
@@ -283,7 +287,7 @@ class StationSet(ABC):
         if not metadata_validator.validate(metadata):
             # raise MetadataInvalidException(f"Metadata is invalid: {metadata_validator.errors}")
             raise MetadataInvalidException(
-                f"Metadata is invalid: {json.dumps(metadata_validator.errors, indent=2, default=str)}"
+                f"[validate_metadata] metadata is invalid: {json.dumps(metadata_validator.errors, indent=2, default=str)}"
             )
 
     @staticmethod
@@ -292,7 +296,7 @@ class StationSet(ABC):
     ):
         if not station_metadata_validator.validate(station_metadata):
             # raise MetadataInvalidException(f"Station metadata is invalid: {station_metadata_validator.errors}")
-            raise MetadataInvalidException(f"Station metadata is invalid: {json.dumps(station_metadata_validator.errors, indent=2, default=str)}")
+            raise MetadataInvalidException(f"[validate_station_metadata] station metadata is invalid: {json.dumps(station_metadata_validator.errors, indent=2, default=str)}")
 
     def save_combined_metadata_files(
             self,
@@ -304,25 +308,26 @@ class StationSet(ABC):
             os.path.join(self.file_handler.PROCESSED_DATA_PATH, MetadataHandler.METADATA_FILE_NAME),
             metadata
         )
-        self.log.info("wrote metadata to {}".format(filepath))
+        self.log.info("[save_combined_metadata_files] wrote metadata to {}".format(filepath))
 
     def get_stations_to_transform(
             self
     ) -> list:
         stations = os.listdir(self.file_handler.RAW_DATA_PATH)
         # -4 cuts off .csv
-        return [station[:-4] for station in stations if '.csv' in station]
+        return [self.station_name_formatter(station[:-4]) for station in stations if '.csv' in station]
 
     @contextmanager
     def etl_print_runtime(
             self,
-            station_id: str
+            station_id: str,
+            step: str = 'transform'
     ):
         start_time = time.time()
         yield
         finish_time = time.time()
         self.log.info(
-            f'Station_id={station_id} Time=\033[93m{(finish_time - start_time):.2f}\033[0m')
+            f'[{step}] station_id={station_id} time=\033[93m{(finish_time - start_time):.2f}\033[0m')
 
     @contextmanager
     def check_station_parse_loop(
@@ -333,7 +338,7 @@ class StationSet(ABC):
             yield
         except FailedStationException as fse:
             self.log.error(
-                f"Transform single station failed for {station_id}: {str(fse)}")
+                f"[transform] transform single station failed for {station_id}: {str(fse)}")
 
     def update_date_range_in_station_metadata(
             self,
@@ -364,14 +369,14 @@ class StationSet(ABC):
         try:
             df_validator.validate(processed_dataframe, self.DATA_DICTIONARY)
         except DataframeInvalidException as die:
-            self.log.error(f"Processed dataframe not validated: {str(die)}")
+            self.log.error(f"[validate_processed_dataframe] processed dataframe not validated: {str(die)}")
             raise die
 
     def should_combine__dataframe_with_remote_old_dataframe(self,
             processed_dataframe: pd.DataFrame,
             station_metadata: dict
     ) -> bool:
-        self.log.info("check if needs to combine old data to new data")
+        self.log.info("[save_processed_data] check if needs to combine old data to new data")
         dataframe_date_begin, dataframe_end_date = DateRangeHandler.get_date_range_from_dataframe(processed_dataframe)
         metadata_date_begin, metadata_date_end = DateRangeHandler.get_date_range_from_metadata(station_metadata)
         begin_date = min(dataframe_date_begin, metadata_date_begin) if metadata_date_begin else dataframe_date_begin
@@ -383,15 +388,15 @@ class StationSet(ABC):
             processed_dataframe: pd.DataFrame,
             station_id: str
     ) -> pd.DataFrame:
-        self.log.info("needs combining old data to new data")
-        filename = f'{station_id}.csv'
+        self.log.info("[save_processed_data] needs combining old data to new data")
+        filename = f"{self.station_name_formatter(station_id)}.csv"
         old_df = self.store.read(os.path.join(self.file_handler.relative_path, filename))
 
         # order define the priority of which df should keep the row in case they have the same date
         # In this case processed has the priority
         processed_dataframe['order'] = 1
         if old_df is None:
-            self.log.warn(f"Could not find old dataframe {station_id}.csv on {self.store.base_folder}")
+            self.log.warn(f"[save_processed_data] could not find old dataframe {station_id}.csv on {self.store.base_folder}")
             old_df = pd.DataFrame()
 
         else:
@@ -410,7 +415,7 @@ class StationSet(ABC):
         final_df = final_df.drop(columns=['order'])
         final_df.drop_duplicates(subset='dt', inplace=True, ignore_index=True)
 
-        self.log.info("combined old data to new data")
+        self.log.info("[save_processed_data] combined old data to new data")
         return final_df
 
     # extract() Methods
@@ -425,7 +430,7 @@ class StationSet(ABC):
             os.path.join(self.file_handler.RAW_DATA_PATH, file_name),
             raw_dataframe
         )
-        self.log.info("wrote station file to {}".format(filepath))
+        self.log.info("[extract] wrote station file to {}".format(filepath))
 
     @contextmanager
     def check_station_extract_loop(
@@ -435,6 +440,6 @@ class StationSet(ABC):
         try:
             yield
         except FailedStationException as fse:
-            self.log.error(f"Update Local Station failed for {station_id}: {str(fse)}")
+            self.log.error(f"[extract] update Local Station failed for {station_id}: {str(fse)}")
 
 

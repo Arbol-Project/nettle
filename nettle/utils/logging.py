@@ -31,4 +31,4 @@ def initialize_logging(log_path, debug_log_path, verbose=False):
         debug_log_handler.setFormatter(system_log_formatter)
         etl_logger.addHandler(debug_log_handler)
 
-    return logging
+    return logging.getLogger('')

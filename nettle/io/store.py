@@ -83,8 +83,8 @@ class S3(StoreInterface):
                     secret=self.creds.secret_key
                 )
             except KeyError:  # KeyError indicates credentials have not been manually specified
-                self.log.error("s3 credentials not set")
-            self.log.info("connected to S3 filesystem")
+                self.log.error("[store.fs] s3 credentials not set")
+            self.log.info("[store.fs] connected to S3 filesystem")
         return self._fs
 
     def list_directory(self, path: str):
@@ -155,7 +155,7 @@ class S3(StoreInterface):
                 elif isinstance(content, pd.DataFrame):
                     content.to_csv(f, index=False)
                 else:
-                    raise Exception("Content file not identified")
+                    raise Exception("[store.write] content file not identified")
 
         return filepath
 
@@ -177,7 +177,7 @@ class S3(StoreInterface):
                     elif file_type == 'json' or file_type == 'geojson':
                         return json.load(f)
                     else:
-                        raise Exception('File type not identified')
+                        raise Exception('[store.read] file type not identified')
 
     # def latest_metadata(self, path: str, **kwargs):
     #     self.log.info(f"getting latest metadata")
@@ -252,7 +252,7 @@ class Local(StoreInterface):
                     content.to_csv(f, index=False)
                 else:
                     # make this a better error
-                    raise Exception("Content file not identified")
+                    raise Exception("[store.write] content file not identified")
 
         return filepath
 
@@ -274,7 +274,7 @@ class Local(StoreInterface):
                     elif file_type == 'json' or file_type == 'geojson':
                         return json.load(f)
                     else:
-                        raise Exception('File type not identified')
+                        raise Exception('[store.read] file type not identified')
 
 
     # def metadata_by_filesystem(self, directory, path):
