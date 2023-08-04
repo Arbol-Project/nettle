@@ -109,25 +109,39 @@ class StationSet(ABC):
     def extract(self, **kwargs) -> bool:
         pass
 
-    @abstractmethod
-    def get_metadata(
-            self
-    ):
+    def get_default_metadata(self):
+        return self.BASE_OUTPUT_METADATA
+
+    def get_metadata(self) -> dict:
         """
-        Probably get the old metadata or BASE_OUTPUT_METADATA
+        Get the old metadata or BASE_OUTPUT_METADATA
         :return:
         """
-        pass
+        metadata = self.metadata_handler.get_old_metadata()
+        if metadata is None:
+            return self.get_default_metadata()
 
-    @abstractmethod
+    def get_default_station_metadata(self):
+        return self.BASE_OUTPUT_STATION_METADATA
+
     def get_base_station_geo_metadata(
             self,
             station_id: str
-    ):
+    ) -> dict:
         """
-        Probably get the old station geo metadata or BASE_OUTPUT_STATION_METADATA
+        Get the old station metadata or BASE_OUTPUT_STATION_METADATA
         :return:
         """
+        station_metadata = self.metadata_handler.get_old_station_geo_metadata(station_id)
+        if station_metadata is None:
+            return self.get_default_station_metadata()
+
+    @abstractmethod
+    def metadata(self, **kwargs):
+        pass
+
+    @abstractmethod
+    def base_station_geo_metadata(self, station_id, **kwargs):
         pass
 
     @abstractmethod
@@ -417,6 +431,7 @@ class StationSet(ABC):
 
         self.log.info("[save_processed_data] combined old data to new data")
         return final_df
+
 
     # extract() Methods
     def save_raw_dataframe(
