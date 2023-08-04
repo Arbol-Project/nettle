@@ -112,19 +112,18 @@ class StationSet(ABC):
     def get_default_metadata(self):
         return self.BASE_OUTPUT_METADATA
 
-    def get_metadata(self) -> dict:
+    def get_default_station_metadata(self):
+        return self.BASE_OUTPUT_STATION_METADATA
+
+    def get_old_or_default_metadata(self) -> dict:
         """
         Get the old metadata or BASE_OUTPUT_METADATA
         :return:
         """
         metadata = self.metadata_handler.get_old_metadata()
-        if metadata is None:
-            return self.get_default_metadata()
+        return self.get_default_metadata() if metadata is None else metadata
 
-    def get_default_station_metadata(self):
-        return self.BASE_OUTPUT_STATION_METADATA
-
-    def get_base_station_geo_metadata(
+    def get_old_or_default_station_geo_metadata(
             self,
             station_id: str
     ) -> dict:
@@ -133,8 +132,7 @@ class StationSet(ABC):
         :return:
         """
         station_metadata = self.metadata_handler.get_old_station_geo_metadata(station_id)
-        if station_metadata is None:
-            return self.get_default_station_metadata()
+        return self.get_default_station_metadata() if station_metadata is None else station_metadata
 
     @abstractmethod
     def metadata(self, **kwargs):
@@ -320,7 +318,7 @@ class StationSet(ABC):
             self,
             **kwargs
     ) -> None:
-        metadata = self.get_metadata()
+        metadata = self.metadata()
         self.validate_metadata(metadata)
         filepath = self.local_store.write(
             os.path.join(self.file_handler.PROCESSED_DATA_PATH, MetadataHandler.METADATA_FILE_NAME),
