@@ -166,11 +166,15 @@ class StationSet(ABC):
             self,
             **kwargs
     ) -> None:
+        stations = self.get_stations_to_transform()
         if self.multithread_transform:
-            # multithreaded logic for single_station_parse
-            pass
+            self.log.info("Beginning multiprocessed transform of csvs")
+            with multiprocessing.get_context("spawn").Pool(max(1, multiprocessing.cpu_count() - 2)) as pool:
+                for res in pool.imap_unordered(self.single_station_parse, stations):
+                    pass
+            pool.close()
+            pool.join()
         else:
-            stations = self.get_stations_to_transform()
             for station_id in stations:
                 with self.etl_print_runtime(station_id):
                     self.single_station_parse(station_id, **kwargs)
