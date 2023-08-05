@@ -112,19 +112,18 @@ class StationSet(ABC):
     def get_default_metadata(self):
         return self.BASE_OUTPUT_METADATA
 
-    def get_metadata(self) -> dict:
+    def get_default_station_metadata(self):
+        return self.BASE_OUTPUT_STATION_METADATA
+
+    def get_old_or_default_metadata(self) -> dict:
         """
         Get the old metadata or BASE_OUTPUT_METADATA
         :return:
         """
         metadata = self.metadata_handler.get_old_metadata()
-        if metadata is None:
-            return self.get_default_metadata()
+        return self.get_default_metadata() if metadata is None else metadata
 
-    def get_default_station_metadata(self):
-        return self.BASE_OUTPUT_STATION_METADATA
-
-    def get_base_station_geo_metadata(
+    def get_old_or_default_station_geo_metadata(
             self,
             station_id: str
     ) -> dict:
@@ -133,20 +132,16 @@ class StationSet(ABC):
         :return:
         """
         station_metadata = self.metadata_handler.get_old_station_geo_metadata(station_id)
-        if station_metadata is None:
-            return self.get_default_station_metadata()
+        return self.get_default_station_metadata() if station_metadata is None else station_metadata
 
     @abstractmethod
-    def metadata(self, **kwargs):
-        pass
-
-    @abstractmethod
-    def base_station_geo_metadata(self, station_id, **kwargs):
+    def metadata(self, base_metadata: dict, **kwargs) -> dict:
         pass
 
     @abstractmethod
     def transform_raw_data(
             self,
+            base_station_metadata: dict,
             raw_dataframe: pd.DataFrame,
             station_id: str,
             **kwargs
@@ -187,7 +182,8 @@ class StationSet(ABC):
     ) -> None:
         with self.check_station_parse_loop(station_id):
             raw_dataframe = self.read_raw_station_data(station_id, **kwargs)
-            raw_station_metadata, processed_dataframe = self.transform_raw_data(raw_dataframe, station_id, **kwargs)
+            base_station_metadata = self.get_old_or_default_station_geo_metadata(station_id)
+            raw_station_metadata, processed_dataframe = self.transform_raw_data(base_station_metadata, raw_dataframe, station_id, **kwargs)
             processed_station_metadata = self.transform_raw_metadata(raw_station_metadata, station_id, **kwargs)
             self.validate_processed_dataframe(processed_dataframe)
             self.programmatic_station_metadata_update(processed_dataframe, processed_station_metadata, **kwargs)
@@ -320,7 +316,8 @@ class StationSet(ABC):
             self,
             **kwargs
     ) -> None:
-        metadata = self.get_metadata()
+        base_metadata = self.get_old_or_default_metadata()
+        metadata = self.metadata(base_metadata)
         self.validate_metadata(metadata)
         filepath = self.local_store.write(
             os.path.join(self.file_handler.PROCESSED_DATA_PATH, MetadataHandler.METADATA_FILE_NAME),
