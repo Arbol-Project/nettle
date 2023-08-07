@@ -11,6 +11,7 @@ import pandas as pd
 import time
 import re
 import json
+import multiprocessing
 from contextlib import contextmanager
 from .io.file_handler import FileHandler
 from .io.store import Local
