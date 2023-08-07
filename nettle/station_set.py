@@ -11,6 +11,7 @@ import pandas as pd
 import time
 import re
 import json
+import multiprocessing
 from contextlib import contextmanager
 from .io.file_handler import FileHandler
 from .io.store import Local
@@ -109,19 +110,13 @@ class StationSet(ABC):
     def extract(self, **kwargs) -> bool:
         pass
 
-    def get_default_metadata(self):
-        return self.BASE_OUTPUT_METADATA
-
-    def get_default_station_metadata(self):
-        return self.BASE_OUTPUT_STATION_METADATA
-
     def get_old_or_default_metadata(self) -> dict:
         """
         Get the old metadata or BASE_OUTPUT_METADATA
         :return:
         """
         metadata = self.metadata_handler.get_old_metadata()
-        return self.get_default_metadata() if metadata is None else metadata
+        return self.BASE_OUTPUT_METADATA if metadata is None else metadata
 
     def get_old_or_default_station_geo_metadata(
             self,
@@ -131,20 +126,31 @@ class StationSet(ABC):
         Get the old station metadata or BASE_OUTPUT_STATION_METADATA
         :return:
         """
-        station_metadata = self.metadata_handler.get_old_station_geo_metadata(station_id)
-        return self.get_default_station_metadata() if station_metadata is None else station_metadata
+        station_metadata = self.metadata_handler.get_old_station_geo_metadata(
+            station_id)
+        return self.BASE_OUTPUT_STATION_METADATA if station_metadata is None else station_metadata
 
     @abstractmethod
-    def metadata(self, **kwargs):
-        pass
+    def fill_in_static_metadata(self, base_metadata: dict, **kwargs) -> dict:
+        """
+        Takes in base_metadata, intended to be retrieved from `get_old_or_default_metadata()
 
-    @abstractmethod
-    def base_station_geo_metadata(self, station_id, **kwargs):
+        You are then required to fill in any missing fields, for example:
+
+        base_metadata['name'] = <suitable name>
+        base_metadata['data source'] = <source url>
+        base_metadata['documentation'] = <plain text description>
+        metadata['tags'] = <list of useful tags eg temperature, USA etc>
+        metadata['data dictionary'] = self.DATA_DICTIONARY
+        metadata["previous hash"] = self.store.latest_hash() if self.store.name() == 'ipfs' else None
+        metadata["time generated"] = str(self.today_with_time)
+        """
         pass
 
     @abstractmethod
     def transform_raw_data(
             self,
+            base_station_metadata: dict,
             raw_dataframe: pd.DataFrame,
             station_id: str,
             **kwargs
@@ -185,13 +191,19 @@ class StationSet(ABC):
     ) -> None:
         with self.check_station_parse_loop(station_id):
             raw_dataframe = self.read_raw_station_data(station_id, **kwargs)
-            raw_station_metadata, processed_dataframe = self.transform_raw_data(raw_dataframe, station_id, **kwargs)
-            processed_station_metadata = self.transform_raw_metadata(raw_station_metadata, station_id, **kwargs)
+            base_station_metadata = self.get_old_or_default_station_geo_metadata(
+                station_id)
+            raw_station_metadata, processed_dataframe = self.transform_raw_data(
+                base_station_metadata, raw_dataframe, station_id, **kwargs)
+            processed_station_metadata = self.transform_raw_metadata(
+                raw_station_metadata, station_id, **kwargs)
             self.validate_processed_dataframe(processed_dataframe)
-            self.programmatic_station_metadata_update(processed_dataframe, processed_station_metadata, **kwargs)
+            self.programmatic_station_metadata_update(
+                processed_dataframe, processed_station_metadata, **kwargs)
             self.save_processed_data(processed_dataframe, station_id, **kwargs)
             self.validate_station_metadata(processed_station_metadata)
-            self.save_processed_station_metadata(processed_station_metadata, station_id, **kwargs)
+            self.save_processed_station_metadata(
+                processed_station_metadata, station_id, **kwargs)
 
     def cp_folder_to_remote_store(
             self,
@@ -199,7 +211,8 @@ class StationSet(ABC):
             custom_s3_relative_path: str = None
     ) -> None:
         local_path = self.file_handler.PROCESSED_DATA_PATH if custom_local_full_path is None else custom_local_full_path
-        relative_s3_path = os.path.dirname(self.file_handler.relative_path) if custom_s3_relative_path is None else custom_s3_relative_path
+        relative_s3_path = os.path.dirname(
+            self.file_handler.relative_path) if custom_s3_relative_path is None else custom_s3_relative_path
         return self.store.cp_folder_to_remote(local_path, relative_s3_path)
 
     def read_raw_station_data(
@@ -208,7 +221,8 @@ class StationSet(ABC):
             **kwargs
     ) -> pd.DataFrame:
         df = self.local_store.read(
-            os.path.join(self.file_handler.RAW_DATA_PATH, f"{self.station_name_formatter(station_id)}.csv")
+            os.path.join(self.file_handler.RAW_DATA_PATH,
+                         f"{self.station_name_formatter(station_id)}.csv")
         )
         self.log.info("[read_raw_station_data] read raw station data")
         return df
@@ -224,7 +238,8 @@ class StationSet(ABC):
         processed_dataframe = self.combine_processed_dataframe_with_remote_old_dataframe(
             processed_dataframe, station_id
         )
-        self.save_processed_dataframe(processed_dataframe, station_id, **kwargs)
+        self.save_processed_dataframe(
+            processed_dataframe, station_id, **kwargs)
 
     def save_processed_dataframe(
             self,
@@ -237,7 +252,8 @@ class StationSet(ABC):
             os.path.join(self.file_handler.PROCESSED_DATA_PATH, file_name),
             processed_dataframe
         )
-        self.log.info("[save_processed_dataframe] wrote station file to {}".format(filepath))
+        self.log.info(
+            "[save_processed_dataframe] wrote station file to {}".format(filepath))
 
     def save_processed_station_metadata(
             self,
@@ -247,10 +263,12 @@ class StationSet(ABC):
     ) -> None:
         station_filename = f"{self.station_name_formatter(station_id)}.geojson"
         filepath = self.local_store.write(
-            os.path.join(self.file_handler.PROCESSED_DATA_PATH, station_filename),
+            os.path.join(self.file_handler.PROCESSED_DATA_PATH,
+                         station_filename),
             processed_station_metadata
         )
-        self.log.info("[save_processed_station_metadata] wrote station geojson metadata to {}".format(filepath))
+        self.log.info(
+            "[save_processed_station_metadata] wrote station geojson metadata to {}".format(filepath))
 
     def programmatic_station_metadata_update(
             self,
@@ -258,8 +276,10 @@ class StationSet(ABC):
             processed_station_metadata: dict,
             **kwargs
     ) -> None:
-        self.update_date_range_in_station_metadata(processed_dataframe, processed_station_metadata)
-        self.update_variables_in_station_metadata(processed_dataframe, processed_station_metadata)
+        self.update_date_range_in_station_metadata(
+            processed_dataframe, processed_station_metadata)
+        self.update_variables_in_station_metadata(
+            processed_dataframe, processed_station_metadata)
 
     @staticmethod
     def station_name_formatter(station_name: str):
@@ -312,19 +332,23 @@ class StationSet(ABC):
     ):
         if not station_metadata_validator.validate(station_metadata):
             # raise MetadataInvalidException(f"Station metadata is invalid: {station_metadata_validator.errors}")
-            raise MetadataInvalidException(f"[validate_station_metadata] station metadata is invalid: {json.dumps(station_metadata_validator.errors, indent=2, default=str)}")
+            raise MetadataInvalidException(
+                f"[validate_station_metadata] station metadata is invalid: {json.dumps(station_metadata_validator.errors, indent=2, default=str)}")
 
     def save_combined_metadata_files(
             self,
             **kwargs
     ) -> None:
-        metadata = self.metadata()
+        base_metadata = self.get_old_or_default_metadata()
+        metadata = self.fill_in_static_metadata(base_metadata)
         self.validate_metadata(metadata)
         filepath = self.local_store.write(
-            os.path.join(self.file_handler.PROCESSED_DATA_PATH, MetadataHandler.METADATA_FILE_NAME),
+            os.path.join(self.file_handler.PROCESSED_DATA_PATH,
+                         MetadataHandler.METADATA_FILE_NAME),
             metadata
         )
-        self.log.info("[save_combined_metadata_files] wrote metadata to {}".format(filepath))
+        self.log.info(
+            "[save_combined_metadata_files] wrote metadata to {}".format(filepath))
 
     def get_stations_to_transform(
             self
@@ -375,7 +399,8 @@ class StationSet(ABC):
     ) -> None:
         df_properties = list(processed_dataframe.columns)
         # Get the data dict properties that exist in processed_dataframe
-        variables = {key: value for key, value in self.DATA_DICTIONARY.items() if value["column name"] in df_properties}
+        variables = {key: value for key, value in self.DATA_DICTIONARY.items(
+        ) if value["column name"] in df_properties}
         processed_station_metadata["features"][0]["properties"]["variables"] = variables
 
     def validate_processed_dataframe(
@@ -385,18 +410,24 @@ class StationSet(ABC):
         try:
             df_validator.validate(processed_dataframe, self.DATA_DICTIONARY)
         except DataframeInvalidException as die:
-            self.log.error(f"[validate_processed_dataframe] processed dataframe not validated: {str(die)}")
+            self.log.error(
+                f"[validate_processed_dataframe] processed dataframe not validated: {str(die)}")
             raise die
 
     def should_combine__dataframe_with_remote_old_dataframe(self,
-            processed_dataframe: pd.DataFrame,
-            station_metadata: dict
-    ) -> bool:
-        self.log.info("[save_processed_data] check if needs to combine old data to new data")
-        dataframe_date_begin, dataframe_end_date = DateRangeHandler.get_date_range_from_dataframe(processed_dataframe)
-        metadata_date_begin, metadata_date_end = DateRangeHandler.get_date_range_from_metadata(station_metadata)
-        begin_date = min(dataframe_date_begin, metadata_date_begin) if metadata_date_begin else dataframe_date_begin
-        end_date = max(dataframe_end_date, metadata_date_end) if metadata_date_end else dataframe_end_date
+                                                            processed_dataframe: pd.DataFrame,
+                                                            station_metadata: dict
+                                                            ) -> bool:
+        self.log.info(
+            "[save_processed_data] check if needs to combine old data to new data")
+        dataframe_date_begin, dataframe_end_date = DateRangeHandler.get_date_range_from_dataframe(
+            processed_dataframe)
+        metadata_date_begin, metadata_date_end = DateRangeHandler.get_date_range_from_metadata(
+            station_metadata)
+        begin_date = min(
+            dataframe_date_begin, metadata_date_begin) if metadata_date_begin else dataframe_date_begin
+        end_date = max(
+            dataframe_end_date, metadata_date_end) if metadata_date_end else dataframe_end_date
         return dataframe_date_begin != begin_date or dataframe_end_date != end_date
 
     def combine_processed_dataframe_with_remote_old_dataframe(
@@ -404,15 +435,18 @@ class StationSet(ABC):
             processed_dataframe: pd.DataFrame,
             station_id: str
     ) -> pd.DataFrame:
-        self.log.info("[save_processed_data] needs combining old data to new data")
+        self.log.info(
+            "[save_processed_data] needs combining old data to new data")
         filename = f"{self.station_name_formatter(station_id)}.csv"
-        old_df = self.store.read(os.path.join(self.file_handler.relative_path, filename))
+        old_df = self.store.read(os.path.join(
+            self.file_handler.relative_path, filename))
 
         # order define the priority of which df should keep the row in case they have the same date
         # In this case processed has the priority
         processed_dataframe['order'] = 1
         if old_df is None:
-            self.log.warn(f"[save_processed_data] could not find old dataframe {station_id}.csv on {self.store.base_folder}")
+            self.log.warn(
+                f"[save_processed_data] could not find old dataframe {station_id}.csv on {self.store.base_folder}")
             old_df = pd.DataFrame()
 
         else:
@@ -434,8 +468,8 @@ class StationSet(ABC):
         self.log.info("[save_processed_data] combined old data to new data")
         return final_df
 
-
     # extract() Methods
+
     def save_raw_dataframe(
             self,
             raw_dataframe: pd.DataFrame,
@@ -457,6 +491,5 @@ class StationSet(ABC):
         try:
             yield
         except FailedStationException as fse:
-            self.log.error(f"[extract] update Local Station failed for {station_id}: {str(fse)}")
-
-
+            self.log.error(
+                f"[extract] update Local Station failed for {station_id}: {str(fse)}")
