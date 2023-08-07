@@ -339,9 +339,14 @@ class StationSet(ABC):
             self,
             **kwargs
     ) -> None:
+        # metadata.json
+        # read in old metadata or pull the template if None
         base_metadata = self.get_old_or_default_metadata()
+        # fill in the static metadata, this is an abstract method
         metadata = self.fill_in_static_metadata(base_metadata)
+        # validate
         self.validate_metadata(metadata)
+        # use local store to write out to processed_data
         filepath = self.local_store.write(
             os.path.join(self.file_handler.PROCESSED_DATA_PATH,
                          MetadataHandler.METADATA_FILE_NAME),
@@ -349,6 +354,61 @@ class StationSet(ABC):
         )
         self.log.info(
             "[save_combined_metadata_files] wrote metadata to {}".format(filepath))
+
+        # stations.geojson
+        stations_geojson = self.generate_combined_station_metadata()
+
+        # use local store to write out to processed_data
+        filepath = self.local_store.write(
+            os.path.join(self.file_handler.PROCESSED_DATA_PATH,
+                         MetadataHandler.STATION_METADATA_FILE_NAME),
+            stations_geojson
+        )
+        self.log.info(
+            "[save_combined_metadata_files] wrote stations.geojson to {}".format(filepath))
+
+    def generate_combined_station_metadata(self) -> dict:
+        """
+        Steps are:
+        1) Load old stations.geojson
+        2) Iterate through old stations.geojson looking for updated files
+        3) Save new updates, but also save stations that haven't been updated
+        4) Iterate through new files to see if any stations are appearing for the first time
+        5) Output combined stations.geojson dict
+        """
+        new_features = []
+        used_ids = []
+        # read in old station metadata or pull the template if None
+        base_station_geo_metadata = self.get_old_or_default_station_geo_metadata(
+            station_id='stations')
+        # Iterate through old features
+        old_features = base_station_geo_metadata["features"]
+        for old_feature in old_features:
+            new_metadata_file_name = old_feature["properties"]["station name"] + '.geojson'
+            new_metadata_path = os.path.join(
+                self.file_handler.PROCESSED_DATA_PATH, new_metadata_file_name)
+            new_feature = FileHandler.load_dict(new_metadata_path)
+            # '.geojson' clause to stop the metadata template from entering the file
+            if new_feature == None and new_metadata_file_name != '.geojson':
+                new_features.append(old_feature)
+            elif new_feature != None:
+                new_features.append(new_feature["features"][0])
+                used_ids.append(new_metadata_file_name)
+
+        # iterate through new stations for any that don't exist in used_ids
+        # these are first time stations that should be added to the combined file
+        new_files = os.listdir(self.file_handler.PROCESSED_DATA_PATH)
+        new_files = [file for file in new_files if '.geojson' in file]
+        for file in new_files:
+            if file not in used_ids:
+                new_feature = FileHandler.load_dict(os.path.join(
+                    self.file_handler.PROCESSED_DATA_PATH, file))
+                new_features.append(new_feature["features"][0])
+
+        # append new_features to general geojson template
+        stations_geojson = {
+            "type": "FeatureCollection", "features": new_features}
+        return stations_geojson
 
     def get_stations_to_transform(
             self
