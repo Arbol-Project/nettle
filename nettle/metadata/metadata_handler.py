@@ -30,7 +30,10 @@ class MetadataHandler:
         return static_dict
 
     def get_station_info(self, dict_name: str = None):
-        return self.get_dict(self.STATION_INFO_FOLDER, dict_name)
+        try:
+            return self.get_dict(self.STATION_INFO_FOLDER, dict_name)
+        except FileNotFoundError:
+            return {}
 
     def get_data_dict(self, dict_name: str = None):
         return self.get_dict(self.DATA_DICT_FOLDER, dict_name)
