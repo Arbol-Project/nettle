@@ -1,6 +1,7 @@
 import datetime
 import pandas as pd
 
+
 class DateRangeHandler:
     DATE_FORMAT_FOLDER = "%Y%m%d"
     DATE_HOURLY_FORMAT_FOLDER = "%Y%m%d%H"
@@ -28,11 +29,16 @@ class DateRangeHandler:
 
     @staticmethod
     def convert_date_range_str_to_date(begin_date: str, end_date: str) -> tuple[datetime.date, datetime.date]:
-        return datetime.datetime.strptime(begin_date, '%Y-%m-%d').date(), \
-            datetime.datetime.strptime(end_date, '%Y-%m-%d').date()
+        try:
+            return datetime.datetime.strptime(begin_date, '%Y-%m-%d').date(), \
+                datetime.datetime.strptime(end_date, '%Y-%m-%d').date()
+        except ValueError:
+            # strip out time with [:10]
+            return datetime.datetime.strptime(begin_date[:10], '%Y-%m-%d').date(), \
+                datetime.datetime.strptime(end_date[:10], '%Y-%m-%d').date()
 
     @staticmethod
-    def convert_date_range_date_to_str(begin_date: datetime.date, end_date:datetime.date) -> tuple[str, str]:
+    def convert_date_range_date_to_str(begin_date: datetime.date, end_date: datetime.date) -> tuple[str, str]:
         return begin_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d')
 
     @staticmethod
@@ -58,8 +64,12 @@ class DateRangeHandler:
             dataframe: pd.DataFrame,
             station_metadata: dict
     ) -> tuple[str, str]:
-        dataframe_date_begin, dataframe_end_date = self.get_date_range_from_dataframe(dataframe)
-        metadata_date_begin, metadata_date_end = self.get_date_range_from_metadata(station_metadata)
-        begin_date = min(dataframe_date_begin, metadata_date_begin) if metadata_date_begin else dataframe_date_begin
-        end_date = max(dataframe_end_date, metadata_date_end) if metadata_date_end else dataframe_end_date
+        dataframe_date_begin, dataframe_end_date = self.get_date_range_from_dataframe(
+            dataframe)
+        metadata_date_begin, metadata_date_end = self.get_date_range_from_metadata(
+            station_metadata)
+        begin_date = min(
+            dataframe_date_begin, metadata_date_begin) if metadata_date_begin else dataframe_date_begin
+        end_date = max(
+            dataframe_end_date, metadata_date_end) if metadata_date_end else dataframe_end_date
         return DateRangeHandler.convert_date_range_date_to_str(begin_date, end_date)

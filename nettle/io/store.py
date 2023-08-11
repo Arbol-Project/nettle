@@ -55,7 +55,8 @@ class StoreInterface(ABC):
                 "I/O error({0}): {1}. Filepath: {2}".format(e.errno, e.strerror, filepath))
             # raise e
         except Exception as e:
-            self.log.warn("Unexpected error reading or writing file. Filepath: {}".format(filepath))
+            self.log.warn(
+                "Unexpected error reading or writing file. Filepath: {}".format(filepath))
             raise e
 
 
@@ -155,7 +156,8 @@ class S3(StoreInterface):
                 elif isinstance(content, pd.DataFrame):
                     content.to_csv(f, index=False)
                 else:
-                    raise Exception("[store.write] content file not identified")
+                    raise Exception(
+                        "[store.write] content file not identified")
 
         return filepath
 
@@ -172,12 +174,14 @@ class S3(StoreInterface):
             if self.has_existing_file_full_path(full_filepath):
                 with self.fs().open(full_filepath, 'r') as f:
                     if file_type == 'csv':
-                        csv = pd.read_csv(f, dtype=str, na_values="")
+                        csv = pd.read_csv(
+                            f, dtype=str, on_bad_lines='skip')
                         return csv
                     elif file_type == 'json' or file_type == 'geojson':
                         return json.load(f)
                     else:
-                        raise Exception('[store.read] file type not identified')
+                        raise Exception(
+                            '[store.read] file type not identified')
 
     # def latest_metadata(self, path: str, **kwargs):
     #     self.log.info(f"getting latest metadata")
@@ -201,7 +205,7 @@ class S3(StoreInterface):
 class Local(StoreInterface):
     def __init__(
             self,
-            log = None,
+            log=None,
             base_folder: str = ''
     ):
         super().__init__(log)
@@ -252,7 +256,8 @@ class Local(StoreInterface):
                     content.to_csv(f, index=False)
                 else:
                     # make this a better error
-                    raise Exception("[store.write] content file not identified")
+                    raise Exception(
+                        "[store.write] content file not identified")
 
         return filepath
 
@@ -274,8 +279,8 @@ class Local(StoreInterface):
                     elif file_type == 'json' or file_type == 'geojson':
                         return json.load(f)
                     else:
-                        raise Exception('[store.read] file type not identified')
-
+                        raise Exception(
+                            '[store.read] file type not identified')
 
     # def metadata_by_filesystem(self, directory, path):
     #     '''
@@ -506,4 +511,3 @@ class IPFS(StoreInterface):
     #         self.dm.log.info(
     #             f"old metadata found in {path} on hash {metadata_hash}")
     #     return self.cat(metadata_hash)
-
