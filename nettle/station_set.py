@@ -304,9 +304,13 @@ class StationSet(ABC):
                 processed_dataframe, processed_station_metadata, **kwargs)
             # save processed data to processed_data/station_id.csv
             # this is also where combination with old data occurs
-            self.save_processed_data(processed_dataframe, station_id, **kwargs)
+            # return new date range!!!
+            new_date_range = self.save_processed_data(
+                processed_dataframe, station_id, **kwargs)
             # validate station level metadata according to validators
-            self.validate_station_metadata(processed_station_metadata)
+            # add in new date range
+            self.validate_station_metadata(
+                processed_station_metadata, new_date_range)
             # save processed metadata to processed_data/station_id.geojson
             self.save_processed_station_metadata(
                 processed_station_metadata, station_id, **kwargs)
@@ -407,6 +411,7 @@ class StationSet(ABC):
         )
         self.save_processed_dataframe(
             processed_dataframe, station_id, **kwargs)
+        return [min(processed_dataframe['dt']), max(processed_dataframe['dt'])]
 
     def combine_processed_dataframe_with_remote_old_dataframe(
             self,
@@ -462,8 +467,15 @@ class StationSet(ABC):
 
     @staticmethod
     def validate_station_metadata(
-            station_metadata: dict
+            station_metadata: dict,
+            new_date_range: list
     ):
+        old_date_range = station_metadata['features'][0]['properties']['date range']
+        if new_date_range[0] <= old_date_range[0] and new_date_range[1] >= old_date_range[1]:
+            station_metadata['features'][0]['properties']['date range'] = new_date_range
+        else:
+            raise MetadataInvalidException(
+                f"The new date range for this station after combining with the old station is too small. Please evaluate")
         if not station_metadata_validator.validate(station_metadata):
             # raise MetadataInvalidException(f"Station metadata is invalid: {station_metadata_validator.errors}")
             raise MetadataInvalidException(
