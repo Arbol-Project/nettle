@@ -565,8 +565,11 @@ class StationSet(ABC):
             new_feature = FileHandler.load_dict(new_metadata_path)
             # '.geojson' clause to stop the metadata template from entering the file
             if new_feature == None and new_metadata_file_name != '.geojson':
+                # take old feature
                 new_features.append(old_feature)
+                used_ids.append(new_metadata_file_name)
             elif new_feature != None:
+                # take new feature
                 new_features.append(new_feature["features"][0])
                 used_ids.append(new_metadata_file_name)
 
@@ -575,7 +578,8 @@ class StationSet(ABC):
         new_files = os.listdir(self.file_handler.PROCESSED_DATA_PATH)
         new_files = [file for file in new_files if '.geojson' in file]
         for file in new_files:
-            if file not in used_ids:
+            if file not in used_ids and file != 'stations.geojson':
+                print(file, used_ids)
                 new_feature = FileHandler.load_dict(os.path.join(
                     self.file_handler.PROCESSED_DATA_PATH, file))
                 new_features.append(new_feature["features"][0])
