@@ -470,6 +470,7 @@ class StationSet(ABC):
             station_metadata: dict,
             new_date_range: list
     ):
+        station_metadata['features'][0]['properties']['date range'] = new_date_range
         if not station_metadata_validator.validate(station_metadata):
             # raise MetadataInvalidException(f"Station metadata is invalid: {station_metadata_validator.errors}")
             raise MetadataInvalidException(
@@ -496,10 +497,16 @@ class StationSet(ABC):
     ) -> None:
         # metadata.json
         # read in old metadata or pull the template if None
+        self.log.info(
+            "[save_combined_metadata_files] attempting to retrieve blank metadata")
         base_metadata = self.get_old_or_default_metadata()
         # fill in the static metadata, this is an abstract method
+        self.log.info(
+            "[save_combined_metadata_files] populating blank metadata")
         metadata = self.fill_in_static_metadata(base_metadata)
         # validate
+        self.log.info(
+            "[save_combined_metadata_files] validating metadata.json")
         self.validate_metadata(metadata)
         # use local store to write out to processed_data
         filepath = self.local_store.write(
@@ -511,6 +518,8 @@ class StationSet(ABC):
             "[save_combined_metadata_files] wrote metadata to {}".format(filepath))
 
         # stations.geojson
+        self.log.info(
+            "[save_combined_metadata_files] generating combined station metadata")
         stations_geojson = self.generate_combined_station_metadata()
 
         # use local store to write out to processed_data
