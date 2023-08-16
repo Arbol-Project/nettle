@@ -470,12 +470,6 @@ class StationSet(ABC):
             station_metadata: dict,
             new_date_range: list
     ):
-        old_date_range = station_metadata['features'][0]['properties']['date range']
-        if new_date_range[0] <= old_date_range[0] and new_date_range[1] >= old_date_range[1]:
-            station_metadata['features'][0]['properties']['date range'] = new_date_range
-        else:
-            raise MetadataInvalidException(
-                f"The new date range for this station after combining with the old station is too small. Please evaluate")
         if not station_metadata_validator.validate(station_metadata):
             # raise MetadataInvalidException(f"Station metadata is invalid: {station_metadata_validator.errors}")
             raise MetadataInvalidException(
@@ -565,7 +559,7 @@ class StationSet(ABC):
         # Iterate through old features
         old_features = base_station_geo_metadata["features"]
         for old_feature in old_features:
-            new_metadata_file_name = old_feature["properties"]["station name"] + '.geojson'
+            new_metadata_file_name = old_feature["properties"]["file name"][:-4] + '.geojson'
             new_metadata_path = os.path.join(
                 self.file_handler.PROCESSED_DATA_PATH, new_metadata_file_name)
             new_feature = FileHandler.load_dict(new_metadata_path)
