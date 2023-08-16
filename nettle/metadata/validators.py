@@ -16,7 +16,8 @@ metadata_schema = {
     },
     'compression': {
         'type': 'string',
-        'required': True
+        'required': True,
+        'nullable': True
     },
     'documentation': {
         'type': 'string',
