@@ -579,7 +579,6 @@ class StationSet(ABC):
         new_files = [file for file in new_files if '.geojson' in file]
         for file in new_files:
             if file not in used_ids and file != 'stations.geojson':
-                print(file, used_ids)
                 new_feature = FileHandler.load_dict(os.path.join(
                     self.file_handler.PROCESSED_DATA_PATH, file))
                 new_features.append(new_feature["features"][0])
