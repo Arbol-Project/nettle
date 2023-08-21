@@ -2,7 +2,7 @@ BASE_OUTPUT_METADATA = {
     "name": "",
     "data source": "",
     "contact": "",
-    "compression": "None",
+    "compression": None,
     "documentation": "",
     "tags": [],
     "time generated": "",
