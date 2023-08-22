@@ -1,7 +1,7 @@
 <p align="center"> 
   <img src='docs/static/arbol.svg'></img>
 </p>
-<h1 align="center"> Nettle </h1>
+<h1 align="center"> 🌱 Nettle 🌱 </h1>
 
 <h2> 👋 Introduction</h2>
 
@@ -13,133 +13,68 @@ We have designed Nettle with a _very_ metadata-forward approach. The philosophy 
 
 ![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png)
 
-<h2> 📖 How to use this repository</h2>
+<h2> Structure 🏗️ </h2>
 
-This repository provides a workflow for building climate data ETLs that output to IPFS, S3, or a local file system. This workflow utilizes a set of common methods in a predictable sequence to download raw data, transform it into a standard format, produce consistent metadata and finally write the overall dataset to the desired storage medium.
+With the above in mind, there are four main functions Nettle believes constitutes an ETL. They are listed below with an eye to how we expect them to be used, and what functions they may contain.
 
-🚨 **NB** 🚨
-_If a dataset already exists in your specified storage medium, Nettle will overwrite any newly updated files. It is important to note that if you have an ETL where you pull only a subset of the data, you will have to manage how to append this to existing data yourself._
+## init() ▶️
+Set the following constants, required unless specified:
+-  collection (str) - Where does the data come from? Should be lowercase unless an acronym, which is uppercase (eg. arbol, NOAA, speedwell, CME)
+-  dataset (str) - `<variables>-<frequency>` (eg. temperature-daily, all-monthly, precipitation-hourly)
+    -  Note that collection/dataset forms the default path for all outputs regardless of store (eg. NOAA/ghcn-daily, speedwell/temperature-daily)
+-  custom_relative_data_path (str = None) - used in cases such as CME where we want outputs to look like `forecast/cme/ddif-daily`
+-  multithread_transform (bool = None) - should the ETL be multithreaded at the transform stage?
 
-Users of this library should build ETLs for a desired non-gridded climate dataset by importing the library within an ETL manager script, using the `StationSet` class from [StationSet](nettle/station_set.py) as a base class, then applying its standardized workflow to the climate dataset in question. ETL child classes will need to overload one or many parent properties or methods from the [utils](nettle/utils) directory; the exact number depends on the intricacies of how the raw climate data is packaged. Where anticipated these methods are marked as **@abstractmethod** to prompt the user.
+There are other constants defined for you in `init()`. These are often self explanatory but an ever growing list of explanations can be found here:
+-  date_range_handler, file_handler, metadata_handler - Helper classes to handle various aspects of date management and file io.
+-  self.DATA_DICTIONARY (dict) - The data dictionary of all columns possible in your output dataset. It is very unlikely you'll be able to write an ETL without this.
+-  self.STATION_DICTIONARY (dict) - Sometimes static info about stations will need to be passed to your ETL. This is where you should put that info. Note this isn't always essential, but is useful if you only want to pull a subset of stations, or if you have extra station info that can't be accessed programmatically from the data itself.
 
-Users of this library can run the ETLs they build on the command line or within a notebook environment, as described below in [quickstart](#quickstart), When run, an ETL will first download raw data to a **raw_data** directory and later output finalized data to a **processed_data** directory, creating either directory if they don't yet exist.
+In the nebulous space between `init()` and `extract()`, it is useful (read: imperative) to define one additional abstract method:
+-  fill_in_static_metadata() - Populate the default values for metadata. It is very likely that this only runs the first time you run an ETL.
+
+## extract() ⛏️
+### General gist
+This involves downloading input from some external source and saving it locally. Although data processing is not encouraged at this point, some may be necessary to get your data saved locally in a station-by-station format. For example, if an API serves rain data for London, Cardiff and Edinburgh as a single file, this is the step where you would download that file, and save, to `/raw_data/<station_id>.csv`, the data for each city _separately_.
+
+### Expected methods
+It is difficult to provide general tools for this step. The process of downloading data from external sources is often completely unique to the source. Nettle could provide a final step, likely replacing pd.to_csv() with some custom method that ensured data ended up in the right place. As the number of ETLs grows, we might notice that we are reusing the same code in this section over and over to, for example, download from FTP sites. If this is the case, that code could be generalised and 'demoted' to Nettle, but it seems to me a fool's errand to attempt this generalisation from the outset.
+
+### Expected output
+By the end of `extract()`, the user should have saved locally, in `/raw_data`, the station-by-station information required to update their data source. Please note in this context a 'station' refers to some area with associated data. For example if your dataset was country-level population data, then your 'stations' would be countries. We use the word station because in general we are dealing with weather data from actual measuring stations.
+
+The method `extract()` should return `True` if new data was found. This will trigger the next step of the process. If `False` is returned, it is assumed no new data was found and the process will end.
+
+## transform() 🪄
+### General gist
+The aim of the `transform()` step is to take that minimally modified data from `/raw_data` and transform it to a final format, ready and saved to `/processed_data`. This final format is as such, with one temporal index column (dt) and a series of data columns:
+
+| dt         | Var1    | Var2         |
+|------------|---------|--------------|
+| 1995-06-06 | fish    | strawberries |
+| 1995-06-07 | chips   | cream        |
+| 1995-06-08 | vinegar | pimms        |
+
+### Expected methods
+I envision the method itself shouldn't need to be modified by the end user. It does however contain two abstractmethods:
+-  transform_raw_data() - Used for reading the raw station data file and transforming it to the final format. This is also where you can pull metadata out from the data file for use in the next abstract method
+-  transform_raw_metadata() - Used for combining the useful info you pulled out in the previous step and combining it with some base version.
+
+### Expected output
+By the end of `transform()`, the user should have saved locally, in `/processed_data`, all the data they wish to add to their store of choice, in the format they want it with relevant metadata.json, station-by-station geojson and a unified stations.geojson file.
+
+
+## load() 🚀
+### General gist
+You have the flexibility to load data as you see fit. However we intend for the load step to look something like:
+-  Local store - nothing happens, you've already saved the data to `processed_data/collection/dataset/...`
+-  S3 - copy the local folder to an s3 bucket of your choosing using `cp_folder_to_remote` in `nettle/io/store.py`
+-  IPFS - copy the local folder to your configured IPFS environment using `cp_local_folder_to_remote` in `nettle/io/store.py`
+
 
 ![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png)
 
-<h2> 🎬 Quickstart</h2>
+## Questions
+**Q: What happens if data has no natural station-by-station approach?**
 
-### Requirements
--  A Python >= 3.10 virtual environment for developing and running ETLs set up with the [required libraries](setup.cfg). It is likely that this repo will work for most machines with a python version earlier than this, but for apple silicon users we've set the lower bound at version 3.10.
-
--  [IPFS 0.10+](https://github.com/ipfs/go-ipfs/) node **with a running daemon** (see [further instructions](docs/IPFS_Node_Management.md) for installation on a Linux machine). Note this is not required if you don't plan on uploading data to IPFS.
-
-
-### Setup
-First install the library from the github repository using `pip`. We recommend doing so within a Python virtual environment.
-
-    pip install git+https://github.com/Arbol-Project/Nettle@<version number>
-
-Eventually this should be available via pypy, and you'll simply pip install nettle directly.
-
-#### IPFS users
-If you plan to interface with ipfs, install IPFS as per [the docs](docs/IPFS_Node_Management.md).
-
-Once the library and an IPFS node are installed, instantiate an IPFS daemon. Open a terminal and run
-
-    ipfs daemon &
-
-Keep the terminal open as you move through the rest of the quickstart
-
-
-#### S3 users
-We recommend adding the following lines to your ~/.aws/credentials file. `default` is the name you give for your given creds, you will need it later as seen in our s3 example.
-
-    [default]
-    aws_access_key_id =
-    aws_secret_access_key =
-
-
-### Running the ETL
-With the IPFS daemon up and running manager scripts using the `nettle` library can be invoked within a separate script or notebook. Note you will have to first create a functioning manager script. There is an example of how to do this in the examples/managers folder of this repo [here](examples/etls/managers/bom.py).
-
-
-🚨 **NB** 🚨
-_The example uses weather data from the Australian Bureau of Meteorology (BOM). As per this [site](http://www.bom.gov.au/other/disclaimer.shtml?ref=ftr), this data is **not** for commercial use, but is licensed under Australia's Creative Commons Attribute Licence. Please pay attention to licencing before using Nettle to access weather data in a commercial setting._
-
-1) Copy the `etls` folder from this repo to a clean directory where you want to run your ETLs
-2) Then copy and paste the below code in to a file at the same levels as `managers`, `static` and `processed_data` and run it!
-
-
-#### IPFS Example
-``` python
-from etls.managers.bom import BOM
-from nettle.utils.store import Local, S3, IPFS
-from nettle.utils import settings
-import logging
-
-# set logs
-logging.getLogger('').setLevel(logging.INFO)
-# set desired store
-ipfs_store = IPFS()
-# instantiate ETL, BOM in this case
-etl = BOM(log=logging.log, store=ipfs_store)
-# update_local_input returns False is it cannot connect/can't find new data
-trigger_parse = BOM.update_local_input(etl)
-# parse returns True if there was newdata to add to your existing set
-perform_validation = BOM.parse(etl)
-# verify your output to see if it's all in the correct format
-verified = BOM.verify(etl)
-# if verified, add to IPFS
-if verified:
-    ipfs_store.cp_local_folder_to_remote()
-```
-
-
-#### S3 Example
-``` python
-import sys
-import logging
-from managers.bom import BOM as BOM
-from nettle.utils.store import Local, S3, IPFS
-from nettle.utils import settings
-
-# set logs
-logging.getLogger('').setLevel(logging.INFO)
-# set desired store using s3 profile from earlier and your bucket name
-s3_store = S3(BOM, bucket='<bucket name>', credentials_name='default')
-# instantiate ETL, in this case our example is BOM
-etl = BOM(log=logging.log, store=s3_store)
-
-# Update our local input, will output False if there's no new data at all
-should_parse = etl.update_local_input()
-
-if should_parse:
-    # parse, returns True if new data found
-    should_verify = etl.parse()
-    # if parse returned false, no new data to add
-    if not should_verify:
-        print("no new data parsed, ending here")
-        sys.exit()
-    else:
-        print("performing verification on {}".format(etl))
-        # returns True if verification successful
-        if etl.verify():
-            # copy files to s3 destination
-            s3_store.cp_local_folder_to_remote()
-```
-
-
-### Retrieving your dataset 🚧🚧🚧
-#### IPFS:
-Check processed_data/hashes/heads.json for your most recent file and run
-```
-ipfs cat <hash>/<filename>
-```
-
-
-#### S3:
-```
-aws s3 ls s3://#{S3_STATION_BUCKET}/datasets/bom/#{date}/
-Example: aws s3 ls s3://company-data/datasets/bom/20230516/
-```
-![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png)
+A: Stop using Nettle. In order to make useful tools we've had to make assumptions as to what the data looks like. Having station-by-station data, or some other natural equivalent (county, country, windfarm) is imperative to the nature of the beast.

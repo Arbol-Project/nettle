@@ -18,8 +18,8 @@ class LogInfo:
         '''
         Log a message at INFO level
         '''
-        if self.log == print:
-            self.log("INFO:", message)
+        if self._log == print:
+            self.log("\033[90mINFO    \033[0m", message)
         else:
             self.log(logging.INFO, message)
 
@@ -27,8 +27,8 @@ class LogInfo:
         '''
         Log a message at DEBUG level
         '''
-        if self.log == print:
-            self.log("DEBUG:", message)
+        if self._log == print:
+            self.log("\033[90mDEBUG    \033[0m", message)
         else:
             self.log(logging.DEBUG, message)
 
@@ -36,8 +36,8 @@ class LogInfo:
         '''
         Log a message at WARN level
         '''
-        if self.log == print:
-            self.log("WARN:", message)
+        if self._log == print:
+            self.log("\033[93mWARN    \033[0m", message)
         else:
             self.log(logging.WARN, message)
 
@@ -45,7 +45,7 @@ class LogInfo:
         '''
         Log a message at ERROR level
         '''
-        if self.log == print:
-            self.log("ERROR:", message)
+        if self._log == print:
+            self.log("\033[91mERROR    \033[0m", message)
         else:
             self.log(logging.ERROR, message)
