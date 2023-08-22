@@ -39,8 +39,6 @@ class StationSet(ABC):
 
     def __init__(
             self,
-            collection,
-            dataset,
             log=print,
             custom_relative_data_path=None,
             store=None,
@@ -96,16 +94,6 @@ class StationSet(ABC):
         return hash(str(self))
 
     @staticmethod
-    @abstractmethod
-    def collection():
-        pass
-
-    @staticmethod
-    @abstractmethod
-    def dataset():
-        pass
-
-    @staticmethod
     def default_dict_path():
         return os.path.join(os.getcwd())
 
@@ -119,6 +107,35 @@ class StationSet(ABC):
     #####################################################################
     # ABSTRACT METHODS
     #####################################################################
+    @staticmethod
+    @abstractmethod
+    def collection():
+        """
+        The collection of your manager. This is usually the dataset provider
+        For example:
+        - arbol (for internal datasets/custom modifications)
+        - CME
+        - speedwell
+        - NOAA
+
+        Note that acronyms are in capitals, all others are in lowercase
+        """
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def dataset():
+        """
+        The dataset of your manager. This will usually be specified at the lowest
+        level child class. The format for datasets is <variables>-<dataset frequency>.
+        For example:
+        - teleconnections-daily
+        - temperature-hourly
+        - wind_index-daily
+        - precipitation-monthly
+        """
+        pass
+
     @abstractmethod
     def extract(self, **kwargs) -> bool:
         '''
