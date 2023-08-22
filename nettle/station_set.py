@@ -52,15 +52,13 @@ class StationSet(ABC):
         # Establish date today just incase etl runs over midnight
         self.today_with_time = datetime.datetime.now()
         self.multithread_transform = multithread_transform
-        self.COLLECTION = collection
-        self.DATASET = dataset
         self.log = LogInfo(log, self.name())
         self.BASE_OUTPUT_METADATA = BASE_OUTPUT_METADATA
         self.BASE_OUTPUT_STATION_METADATA = BASE_OUTPUT_STATION_METADATA
         if custom_relative_data_path is None:
             relative_path = os.path.join(
-                self.COLLECTION,
-                self.DATASET
+                self.collection(),
+                self.dataset()
             )
         else:
             relative_path = custom_relative_data_path
@@ -96,6 +94,16 @@ class StationSet(ABC):
 
     def __hash__(self):
         return hash(str(self))
+
+    @staticmethod
+    @abstractmethod
+    def collection():
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def dataset():
+        pass
 
     @staticmethod
     def default_dict_path():
