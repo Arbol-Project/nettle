@@ -39,8 +39,6 @@ class StationSet(ABC):
 
     def __init__(
             self,
-            collection,
-            dataset,
             log=print,
             custom_relative_data_path=None,
             store=None,
@@ -52,15 +50,13 @@ class StationSet(ABC):
         # Establish date today just incase etl runs over midnight
         self.today_with_time = datetime.datetime.now()
         self.multithread_transform = multithread_transform
-        self.COLLECTION = collection
-        self.DATASET = dataset
         self.log = LogInfo(log, self.name())
         self.BASE_OUTPUT_METADATA = BASE_OUTPUT_METADATA
         self.BASE_OUTPUT_STATION_METADATA = BASE_OUTPUT_STATION_METADATA
         if custom_relative_data_path is None:
             relative_path = os.path.join(
-                self.COLLECTION,
-                self.DATASET
+                self.collection(),
+                self.dataset()
             )
         else:
             relative_path = custom_relative_data_path
@@ -111,6 +107,35 @@ class StationSet(ABC):
     #####################################################################
     # ABSTRACT METHODS
     #####################################################################
+    @staticmethod
+    @abstractmethod
+    def collection():
+        """
+        The collection of your manager. This is usually the dataset provider
+        For example:
+        - arbol (for internal datasets/custom modifications)
+        - CME
+        - speedwell
+        - NOAA
+
+        Note that acronyms are in capitals, all others are in lowercase
+        """
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def dataset():
+        """
+        The dataset of your manager. This will usually be specified at the lowest
+        level child class. The format for datasets is <variables>-<dataset frequency>.
+        For example:
+        - teleconnections-daily
+        - temperature-hourly
+        - wind_index-daily
+        - precipitation-monthly
+        """
+        pass
+
     @abstractmethod
     def extract(self, **kwargs) -> bool:
         '''
