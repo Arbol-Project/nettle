@@ -7,7 +7,6 @@ class MetadataHandler:
     STATIC_FOLDER = 'static'
     STATION_INFO_FOLDER = 'station_info'
     DATA_DICT_FOLDER = 'data_dictionaries'
-    MODULE_FOLDER = 'non_gridded_etl_managers'
 
     def __init__(self, file_handler, dict_path,
                  station_set_name, store, local_store, log):
@@ -21,8 +20,8 @@ class MetadataHandler:
     def get_dict(self, dict_folder, dict_name: str = None):
         if dict_name is None:
             dict_name = self.station_set_name
-        file_path = os.path.join(self.dict_path, self.MODULE_FOLDER,
-                                 self.STATIC_FOLDER, dict_folder, f"{dict_name}.json")
+        file_path = os.path.join(
+            self.dict_path, self.STATIC_FOLDER, dict_folder, f"{dict_name}.json")
         static_dict = self.local_store.read(file_path)
         if static_dict is None:
             raise FileNotFoundError(

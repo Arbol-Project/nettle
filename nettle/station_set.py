@@ -105,7 +105,7 @@ class StationSet(ABC):
         if self.custom_dict_path:
             return self.custom_dict_path
         else:
-            return os.path.join(os.getcwd())
+            return os.path.join(os.getcwd(), 'non_gridded_etl_managers')
 
     @classmethod
     def name(cls):
