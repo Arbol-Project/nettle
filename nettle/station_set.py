@@ -42,7 +42,9 @@ class StationSet(ABC):
             log=print,
             custom_relative_data_path=None,
             store=None,
-            multithread_transform=None
+            multithread_transform=None,
+            custom_dict_path=None
+
     ):
         '''
         Set member variables to defaults.
@@ -50,6 +52,7 @@ class StationSet(ABC):
         # Establish date today just incase etl runs over midnight
         self.today_with_time = datetime.datetime.now()
         self.multithread_transform = multithread_transform
+        self.custom_dict_path = custom_dict_path
         self.log = LogInfo(log, self.name())
         self.BASE_OUTPUT_METADATA = BASE_OUTPUT_METADATA
         self.BASE_OUTPUT_STATION_METADATA = BASE_OUTPUT_STATION_METADATA
@@ -70,7 +73,7 @@ class StationSet(ABC):
         self.date_range_handler = DateRangeHandler()
         self.file_handler = FileHandler(relative_path=relative_path)
         self.metadata_handler = MetadataHandler(self.file_handler,
-                                                StationSet.default_dict_path(),
+                                                self.default_dict_path(),
                                                 self.name(),
                                                 self.store,
                                                 self.local_store,
@@ -93,9 +96,16 @@ class StationSet(ABC):
     def __hash__(self):
         return hash(str(self))
 
-    @staticmethod
-    def default_dict_path():
-        return os.path.join(os.getcwd())
+    def default_dict_path(self):
+        """
+        When running on prefect this will require
+        custom_dict_path. Otherwise locally
+        it's best to use os.getcwd() as intended
+        """
+        if self.custom_dict_path:
+            return self.custom_dict_path
+        else:
+            return os.path.join(os.getcwd())
 
     @classmethod
     def name(cls):
