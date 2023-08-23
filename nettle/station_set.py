@@ -96,7 +96,6 @@ class StationSet(ABC):
     def __hash__(self):
         return hash(str(self))
 
-    @staticmethod
     def default_dict_path(self):
         """
         When running on prefect this will require
