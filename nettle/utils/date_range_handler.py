@@ -59,17 +59,18 @@ class DateRangeHandler:
                 return DateRangeHandler.convert_date_range_str_to_date(date_begin_str, date_end_str)
         return None, None
 
+    @staticmethod
     def get_lowest_and_highest_date_range(
-            self,
             dataframe: pd.DataFrame,
             station_metadata: dict
     ) -> tuple[str, str]:
-        dataframe_date_begin, dataframe_end_date = self.get_date_range_from_dataframe(
+        dataframe_date_begin, dataframe_end_date = DateRangeHandler.get_date_range_from_dataframe(
             dataframe)
-        metadata_date_begin, metadata_date_end = self.get_date_range_from_metadata(
+        metadata_date_begin, metadata_date_end = DateRangeHandler.get_date_range_from_metadata(
             station_metadata)
         begin_date = min(
             dataframe_date_begin, metadata_date_begin) if metadata_date_begin else dataframe_date_begin
         end_date = max(
             dataframe_end_date, metadata_date_end) if metadata_date_end else dataframe_end_date
         return DateRangeHandler.convert_date_range_date_to_str(begin_date, end_date)
+

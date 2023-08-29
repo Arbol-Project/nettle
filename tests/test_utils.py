@@ -126,5 +126,5 @@ class DateRangeHandlerTestCase(TestCase):
     def test_get_lowest_and_highest_date_range(self):
         self.assertEqual(
             DateRangeHandler.get_lowest_and_highest_date_range(self.df, self.kalumburu_metadata),
-            (self.date_1.date(), self.date_2.date())
+            (self.date_str_1, self.date_str_2)
         )
