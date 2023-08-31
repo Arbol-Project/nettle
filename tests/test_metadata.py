@@ -4,7 +4,6 @@ from nettle.metadata.metadata_handler import MetadataHandler
 from .fixtures.data_dicts import bom_data_dict
 from .fixtures.station_dicts import bom_station_dict
 from .fixtures.metadatas import bom_metadata
-from .fixtures.metadatas import bom_stations_metadata
 from .fixtures.metadatas import kalumburu_metadata
 
 class MetadataHandlerTestCase(TestCase):
