@@ -1,3 +1,4 @@
+# metadata.json
 bom_metadata = {
     "name": "BOM Australia Weather Station Data",
     "data source": "http://www.bom.gov.au/",
@@ -69,6 +70,7 @@ bom_metadata = {
     }
 }
 
+# stations.geojson
 bom_stations_metadata = {
     "type": "FeatureCollection",
     "features": [
@@ -227,6 +229,7 @@ bom_stations_metadata = {
     ]
 }
 
+# KALUMBURU.geojson
 kalumburu_metadata = {
     "type": "FeatureCollection",
     "features": [

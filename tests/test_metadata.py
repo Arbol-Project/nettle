@@ -4,6 +4,8 @@ from nettle.metadata.metadata_handler import MetadataHandler
 from .fixtures.data_dicts import bom_data_dict
 from .fixtures.station_dicts import bom_station_dict
 from .fixtures.metadatas import bom_metadata
+from .fixtures.metadatas import bom_stations_metadata
+from .fixtures.metadatas import kalumburu_metadata
 
 class MetadataHandlerTestCase(TestCase):
     def setUp(self):
@@ -11,8 +13,6 @@ class MetadataHandlerTestCase(TestCase):
             self.file_handler = MockClass.return_value
         with patch('nettle.utils.log_info.LogInfo') as MockClass:
             self.log = MockClass.return_value
-            # self.metadata_handler.file_handler = 'test1'
-            # self.metadata_handler.default_dict_path = 'test2'
 
     def test_get_dict(self):
         # ToDO: Importing store Local here is generating a warning, need to figure out why
@@ -62,14 +62,50 @@ class MetadataHandlerTestCase(TestCase):
             bom_metadata
         )
 
-    # def test_old_station_geo_metadata_by_store(self):
-    #     raise NotImplementedError("error")
-    #
-    # def test_get_old_metadata_by_store(self):
-    #     raise NotImplementedError("error")
-    #
-    # def test_get_old_metadata(self):
-    #     raise NotImplementedError("error")
-    #
-    # def test_get_old_station_geo_metadata(self):
-    #     raise NotImplementedError("error")
+    def test_old_station_geo_metadata_by_store(self):
+        # ToDO: Importing store Local here is generating a warning, need to figure out why
+        with patch('nettle.io.store.Local') as MockClass:
+            store = MockClass.return_value
+            store.read.return_value = kalumburu_metadata
+
+        metadata_handler = MetadataHandler(self.file_handler, "somewhere", "BOM", store, store, self.log)
+        self.assertEqual(
+            metadata_handler.get_old_station_geo_metadata_by_store("KALUMBURU.geojson", store),
+            kalumburu_metadata
+        )
+
+    def test_get_old_metadata_by_store(self):
+        # ToDO: Importing store Local here is generating a warning, need to figure out why
+        with patch('nettle.io.store.Local') as MockClass:
+            store = MockClass.return_value
+            store.read.return_value = bom_metadata
+
+        metadata_handler = MetadataHandler(self.file_handler, "somewhere", "BOM", store, store, self.log)
+        self.assertEqual(
+            metadata_handler.get_old_metadata_by_store(store),
+            bom_metadata
+        )
+
+    def test_get_old_metadata(self):
+        # ToDO: Importing store Local here is generating a warning, need to figure out why
+        with patch('nettle.io.store.Local') as MockClass:
+            store = MockClass.return_value
+            store.read.return_value = bom_metadata
+
+        metadata_handler = MetadataHandler(self.file_handler, "somewhere", "BOM", store, store, self.log)
+        self.assertEqual(
+            metadata_handler.get_old_metadata(),
+            bom_metadata
+        )
+
+    def test_get_old_station_geo_metadata(self):
+        # ToDO: Importing store Local here is generating a warning, need to figure out why
+        with patch('nettle.io.store.Local') as MockClass:
+            store = MockClass.return_value
+            store.read.return_value = kalumburu_metadata
+
+        metadata_handler = MetadataHandler(self.file_handler, "somewhere", "BOM", store, store, self.log)
+        self.assertEqual(
+            metadata_handler.get_old_station_geo_metadata("KALUMBURU.geojson"),
+            kalumburu_metadata
+        )
