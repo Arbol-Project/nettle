@@ -7,6 +7,7 @@ from nettle.io.store import IPFS
 import s3fs
 import botocore
 import os
+import fsspec
 
 s3_bucket_name = "arbol-station-dev"
 credentials_name = "arbol-dev"
@@ -83,17 +84,145 @@ class S3StoreTestCase(TestCase):
     #     self.s3_store.cp_folder_to_remote(local_path, relative_s3_path)
     #     pass
 
-    # def test_write(self):
-    #     self.s3_store.write()
-    #     pass
+    def test_write_none_json(self):
+        with self.assertRaises(Exception) as cm:
+            self.s3_store.write(f"folder_for_test_dont_delete/test_metadata_none.json", None)
+        self.assertEqual(
+            "[store.write] content file not identified",
+            str(cm.exception)
+        )
 
-    def test_read(self):
-        content = self.s3_store.read(f"folder_for_test_dont_delete/metadata.json")
-        content_non_existent = self.s3_store.read(f"path_non_existent_d1b034")
-        self.assertTrue(content)
+    def test_write_none_csv(self):
+        with self.assertRaises(Exception) as cm:
+            self.s3_store.write(f"folder_for_test_dont_delete/test_metadata_none.csv", None)
+        self.assertEqual(
+            "[store.write] content file not identified",
+            str(cm.exception)
+        )
+
+    def test_write_without_termination(self):
+        content = {"a": 1, "b": 2}
+        filepath = self.s3_store.write(f"folder_for_test_dont_delete/test_metadata_without_termination", content)
+        self.assertEqual(filepath, f"folder_for_test_dont_delete/test_metadata_without_termination")
+
+    def test_write_json(self):
+        content = {"a": 1, "b": 2}
+        filepath = self.s3_store.write(f"folder_for_test_dont_delete/test_metadata.json", content)
+        self.assertEqual(filepath, f"folder_for_test_dont_delete/test_metadata.json")
+
+    # def test_write_csv(self):
+    #     content = ''
+    #     self.s3_store.write(f"folder_for_test_dont_delete/KALUMBRU.csv", content)
+
+    def test_read_without_termination(self):
+        content_non_existent = self.s3_store.read(f"metadata")
         self.assertFalse(content_non_existent)
 
+    def test_read_json_non_existent(self):
+        content_non_existent = self.s3_store.read(f"path_non_existent_d1b034.json")
+        self.assertFalse(content_non_existent)
 
-# class LocalStoreTestCase(TestCase):
-#     def setUp(self):
-#         pass
+    def test_read_csv_non_existent(self):
+        content_non_existent = self.s3_store.read(f"path_non_existent_d1b034.csv")
+        self.assertFalse(content_non_existent)
+
+    def test_read_json(self):
+        content = self.s3_store.read(f"folder_for_test_dont_delete/metadata.json")
+        self.assertTrue(content)
+
+    def test_read_csv(self):
+        content = self.s3_store.read(f"folder_for_test_dont_delete/KALUMBURU.csv")
+        self.assertTrue(content is not None)
+
+
+class LocalStoreTestCase(TestCase):
+    def setUp(self):
+        with patch('nettle.utils.log_info.LogInfo') as MockClass:
+            log = MockClass.return_value
+        self.local_store = Local(log=log)
+
+    def test_fs(self):
+        self.assertTrue(self.local_store.fs())
+        self.assertTrue(isinstance(self.local_store.fs(), fsspec.implementations.local.LocalFileSystem))
+
+    # def test_list_directory(self):
+    #     list directory not implemented in Local
+
+    def test_has_existing_file(self):
+        self.assertTrue(self.local_store.has_existing_file(f"tests/fixtures/metadatas.py"))
+
+    def test_has_existing_file_but_file_dont_exist(self):
+        self.assertFalse(self.local_store.has_existing_file(f"path_non_existent_d1b034"))
+
+    def test_has_existing_file_full_path(self):
+        full_filepath_exists = os.path.join(
+            self.local_store.base_folder,
+            f"tests/fixtures/metadatas.py"
+        )
+        self.assertTrue(self.local_store.has_existing_file_full_path(full_filepath_exists))
+
+    def test_has_existing_file_full_path_but_file_dont_exist(self):
+        full_filepath_dont_exist = os.path.join(
+            self.local_store.base_folder,
+            f"path_non_existent_d1b034"
+        )
+        self.assertFalse(self.local_store.has_existing_file_full_path(full_filepath_dont_exist))
+
+
+    # def test_cp_folder_to_remote(self):
+    #     local_path = self.file_handler.PROCESSED_DATA_PATH
+    #     relative_path = os.path.dirname(self.file_handler.relative_path)
+    #     self.local_store.cp_folder_to_remote(local_path, relative_path)
+    #     pass
+
+    # def test_write_none_json(self):
+    #     with self.assertRaises(Exception) as cm:
+    #         self.local_store.write(f"tests/fixtures/test_metadata_none.json", None)
+    #     self.assertEqual(
+    #         "[store.write] content file not identified",
+    #         str(cm.exception)
+    #     )
+    #     # File not being deleted
+    #
+    # def test_write_none_csv(self):
+    #     with self.assertRaises(Exception) as cm:
+    #         self.local_store.write(f"tests/fixtures/test_metadata_none.csv", None)
+    #     self.assertEqual(
+    #         "[store.write] content file not identified",
+    #         str(cm.exception)
+    #     )
+    #     # File not being deleted
+
+    # def test_write_without_termination(self):
+    #     content = {"a": 1, "b": 2}
+    #     filepath = self.s3_store.write(f"folder_for_test_dont_delete/test_metadata_without_termination", content)
+    #     self.assertEqual(filepath, f"folder_for_test_dont_delete/test_metadata_without_termination")
+    #
+    # def test_write_json(self):
+    #     content = {"a": 1, "b": 2}
+    #     filepath = self.s3_store.write(f"folder_for_test_dont_delete/test_metadata.json", content)
+    #     self.assertEqual(filepath, f"folder_for_test_dont_delete/test_metadata.json")
+    #
+    # def test_write_csv(self):
+    #     content = ''
+    #     self.s3_store.write(f"folder_for_test_dont_delete/KALUMBRU.csv", content)
+
+    def test_read_without_termination(self):
+        content_non_existent = self.local_store.read(f"metadata")
+        self.assertFalse(content_non_existent)
+
+    def test_read_json_non_existent(self):
+        content_non_existent = self.local_store.read(f"path_non_existent_d1b034.json")
+        self.assertFalse(content_non_existent)
+
+    def test_read_csv_non_existent(self):
+        content_non_existent = self.local_store.read(f"path_non_existent_d1b034.csv")
+        self.assertFalse(content_non_existent)
+
+    def test_read_json(self):
+        content = self.local_store.read(f"tests/fixtures/metadata.json")
+        self.assertTrue(content)
+
+    def test_read_csv(self):
+        content = self.local_store.read(f"tests/fixtures/KALUMBURU.csv")
+        self.assertTrue(content is not None)
