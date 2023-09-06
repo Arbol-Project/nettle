@@ -409,6 +409,7 @@ class StationSet(ABC):
             processed_dataframe, processed_station_metadata)
         self.update_variables_in_station_metadata(
             processed_dataframe, processed_station_metadata)
+        self.update_geometry_to_float(processed_station_metadata)
 
     def update_date_range_in_station_metadata(
             self,
@@ -432,6 +433,15 @@ class StationSet(ABC):
         variables = {key: value for key, value in self.DATA_DICTIONARY.items(
         ) if value["column name"] in df_properties}
         processed_station_metadata["features"][0]["properties"]["variables"] = variables
+
+    def update_geometry_to_float(self, processed_station_metadata) -> None:
+        if processed_station_metadata["features"][0]["geometry"]["type"] == "Point":
+            coords = processed_station_metadata["features"][0]["geometry"]["coordinates"]
+            try:
+                coords = [float(x) for x in coords]
+            except ValueError:
+                coords = []
+            processed_station_metadata["features"][0]["geometry"]["coordinates"] = coords
 
     def save_processed_data(
             self,
