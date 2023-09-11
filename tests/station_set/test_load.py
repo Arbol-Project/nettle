@@ -14,11 +14,5 @@ class LoadTestCase(TestCase):
             custom_dict_path=f"tests/fixtures/"
         )
 
-
-#
-# def cp_folder_to_remote_store(
-#             self,
-#             custom_local_full_path: str = None,
-#             custom_s3_relative_path: str = None
-#     ) -> None:
-#
+    # def test_cp_folder_to_remote_store(self):
+    #     pass

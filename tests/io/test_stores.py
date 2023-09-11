@@ -212,7 +212,8 @@ class LocalStoreTestCase(TestCase):
     def test_write_csv(self):
         d = {'col1': [1, 2], 'col2': [3, 4]}
         df = pd.DataFrame(data=d)
-        self.local_store.write(f"tests/temp_folder_for_test/KALUMBRU.csv", df)
+        filepath = self.local_store.write(f"tests/temp_folder_for_test/KALUMBRU.csv", df)
+        self.assertEqual(filepath, f"tests/temp_folder_for_test/KALUMBRU.csv")
         os.remove(f"tests/temp_folder_for_test/KALUMBRU.csv")
 
     def test_read_without_termination(self):
