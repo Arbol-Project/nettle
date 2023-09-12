@@ -14,5 +14,6 @@ class LoadTestCase(TestCase):
             custom_dict_path=f"tests/fixtures/"
         )
 
+    # This is a system test to check a copy from local to s3
     # def test_cp_folder_to_remote_store(self):
     #     pass
