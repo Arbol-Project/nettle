@@ -12,6 +12,8 @@ import time
 import re
 import json
 import multiprocessing
+import astropy.units as astropy_units
+from copy import deepcopy
 from contextlib import contextmanager
 from .io.file_handler import FileHandler
 from .io.store import Local
@@ -516,6 +518,17 @@ class StationSet(ABC):
             new_date_range: list
     ):
         station_metadata['features'][0]['properties']['date range'] = new_date_range
+
+        variables = deepcopy(station_metadata['features'][0]['properties']['variables'])
+        variables.pop('0')
+
+        try:
+            for variable in variables:
+                astropy_units.Quantity(1, variable['unit of measurement'])
+        except ValueError as ve:
+            raise MetadataInvalidException(
+                f"[validate_station_metadata] station metadata is invalid. Unit of Measurement must be an astropy unit: {str(ve)}")
+
         if not station_metadata_validator.validate(station_metadata):
             # raise MetadataInvalidException(f"Station metadata is invalid: {station_metadata_validator.errors}")
             raise MetadataInvalidException(
