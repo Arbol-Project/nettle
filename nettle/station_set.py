@@ -626,9 +626,6 @@ class StationSet(ABC):
                         f"[validate__metadata] metadata is invalid. Unit of Measurement must be an astropy unit: {str(ve)}"
                     ) from None
 
-        # ignore 0(dt actually)
-        # ['data dictionary'][1..to# everyone]['unit of measurement']
-
         if not metadata_validator.validate(metadata):
             # raise MetadataInvalidException(f"Metadata is invalid: {metadata_validator.errors}")
             raise MetadataInvalidException(
