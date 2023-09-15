@@ -520,14 +520,20 @@ class StationSet(ABC):
         station_metadata['features'][0]['properties']['date range'] = new_date_range
 
         variables = deepcopy(station_metadata['features'][0]['properties']['variables'])
-        variables.pop('0')
 
-        try:
-            for variable in variables:
-                astropy_units.Quantity(1, variable['unit of measurement'])
-        except ValueError as ve:
-            raise MetadataInvalidException(
-                f"[validate_station_metadata] station metadata is invalid. Unit of Measurement must be an astropy unit: {str(ve)}")
+        # This will remove the first one because its a date
+        # We should actually remove all dates not only the first one
+        # Maybe remove any column name with _dt at the end?
+        variables.pop('0')
+        unit_of_measurement_exceptions = ['NA']
+
+        for variable in variables:
+            if variable['unit of measurement'] not in unit_of_measurement_exceptions:
+                try:
+                    astropy_units.Quantity(1, variable['unit of measurement'])
+                except ValueError as ve:
+                    raise MetadataInvalidException(
+                        f"[validate_station_metadata] station metadata is invalid. Unit of Measurement must be an astropy unit: {str(ve)}")
 
         if not station_metadata_validator.validate(station_metadata):
             # raise MetadataInvalidException(f"Station metadata is invalid: {station_metadata_validator.errors}")
@@ -603,6 +609,24 @@ class StationSet(ABC):
     def validate_metadata(
             metadata: dict
     ):
+        variables = deepcopy(metadata['data dictionary'])
+        # This will remove the first one because its a date
+        # We should actually remove all dates not only the first one
+        # Maybe remove any column name with _dt at the end?
+        variables.pop('0')
+        unit_of_measurement_exceptions = ['NA']
+
+        for variable in variables:
+            if variable['unit of measurement'] not in unit_of_measurement_exceptions:
+                try:
+                    astropy_units.Quantity(1, variable['unit of measurement'])
+                except ValueError as ve:
+                    raise MetadataInvalidException(
+                        f"[validate__metadata] metadata is invalid. Unit of Measurement must be an astropy unit: {str(ve)}")
+
+        # ignore 0(dt actually)
+        # ['data dictionary'][1..to# everyone]['unit of measurement']
+
         if not metadata_validator.validate(metadata):
             # raise MetadataInvalidException(f"Metadata is invalid: {metadata_validator.errors}")
             raise MetadataInvalidException(
