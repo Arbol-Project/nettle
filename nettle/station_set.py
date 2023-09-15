@@ -527,13 +527,14 @@ class StationSet(ABC):
         variables.pop('0')
         unit_of_measurement_exceptions = ['NA']
 
-        for variable in variables:
+        for variable in variables.values():
             if variable['unit of measurement'] not in unit_of_measurement_exceptions:
                 try:
                     astropy_units.Quantity(1, variable['unit of measurement'])
                 except ValueError as ve:
                     raise MetadataInvalidException(
-                        f"[validate_station_metadata] station metadata is invalid. Unit of Measurement must be an astropy unit: {str(ve)}")
+                        f"[validate_station_metadata] station metadata is invalid. Unit of Measurement must be an astropy unit: {str(ve)}"
+                    ) from None
 
         if not station_metadata_validator.validate(station_metadata):
             # raise MetadataInvalidException(f"Station metadata is invalid: {station_metadata_validator.errors}")
@@ -616,13 +617,14 @@ class StationSet(ABC):
         variables.pop('0')
         unit_of_measurement_exceptions = ['NA']
 
-        for variable in variables:
+        for variable in variables.values():
             if variable['unit of measurement'] not in unit_of_measurement_exceptions:
                 try:
                     astropy_units.Quantity(1, variable['unit of measurement'])
                 except ValueError as ve:
                     raise MetadataInvalidException(
-                        f"[validate__metadata] metadata is invalid. Unit of Measurement must be an astropy unit: {str(ve)}")
+                        f"[validate__metadata] metadata is invalid. Unit of Measurement must be an astropy unit: {str(ve)}"
+                    ) from None
 
         # ignore 0(dt actually)
         # ['data dictionary'][1..to# everyone]['unit of measurement']
