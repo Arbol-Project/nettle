@@ -513,19 +513,23 @@ class StationSet(ABC):
             "[save_processed_dataframe] wrote station file to {}".format(filepath))
 
     @staticmethod
+    def units_of_measurement_exceptions() -> list:
+        """
+        :return:
+        A list containing all unit of measurements that are not astropy units for that etl
+        """
+        return ['YYYY-MM-DD']
+
+    @classmethod
     def validate_station_metadata(
+            cls,
             station_metadata: dict,
             new_date_range: list
     ):
         station_metadata['features'][0]['properties']['date range'] = new_date_range
 
         variables = deepcopy(station_metadata['features'][0]['properties']['variables'])
-
-        # This will remove the first one because its a date
-        # We should actually remove all dates not only the first one
-        # Maybe remove any column name with _dt at the end?
-        variables.pop('0')
-        unit_of_measurement_exceptions = ['NA']
+        unit_of_measurement_exceptions = cls.units_of_measurement_exceptions()
 
         for variable in variables.values():
             if variable['unit of measurement'] not in unit_of_measurement_exceptions:
@@ -610,22 +614,7 @@ class StationSet(ABC):
     def validate_metadata(
             metadata: dict
     ):
-        variables = deepcopy(metadata['data dictionary'])
-        # This will remove the first one because its a date
-        # We should actually remove all dates not only the first one
-        # Maybe remove any column name with _dt at the end?
-        variables.pop('0')
-        unit_of_measurement_exceptions = ['NA']
-
-        for variable in variables.values():
-            if variable['unit of measurement'] not in unit_of_measurement_exceptions:
-                try:
-                    astropy_units.Quantity(1, variable['unit of measurement'])
-                except ValueError as ve:
-                    raise MetadataInvalidException(
-                        f"[validate__metadata] metadata is invalid. Unit of Measurement must be an astropy unit: {str(ve)}"
-                    ) from None
-
+        # Metadata will not validate data dictionary as discussed 18 september 2023
         if not metadata_validator.validate(metadata):
             # raise MetadataInvalidException(f"Metadata is invalid: {metadata_validator.errors}")
             raise MetadataInvalidException(
