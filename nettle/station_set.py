@@ -3,6 +3,21 @@
 # Abstract base classes defining managers for Arbol's climate data sets to be inherited by classes that will implement set-specific
 # update, parse, and verification methods
 
+from .dataframe.validators import DataframeValidator as df_validator
+from .metadata.validators import station_metadata_validator
+from .metadata.validators import metadata_validator
+from .metadata.metadata_handler import MetadataHandler
+from .metadata.bases import BASE_OUTPUT_STATION_METADATA
+from .metadata.bases import BASE_OUTPUT_METADATA
+from .errors.custom_errors import DataframeInvalidException
+from .errors.custom_errors import MetadataInvalidException
+from .errors.custom_errors import FailedStationException
+from .utils.date_range_handler import DateRangeHandler
+from .utils.log_info import LogInfo
+from .io.store import Local
+from .io.file_handler import FileHandler
+from contextlib import contextmanager
+from copy import deepcopy
 from abc import ABC, abstractmethod
 
 import datetime
@@ -12,22 +27,9 @@ import time
 import re
 import json
 import multiprocessing
+# manually add in imperial units (thanks USA)
 import astropy.units as astropy_units
-from copy import deepcopy
-from contextlib import contextmanager
-from .io.file_handler import FileHandler
-from .io.store import Local
-from .utils.log_info import LogInfo
-from .utils.date_range_handler import DateRangeHandler
-from .errors.custom_errors import FailedStationException
-from .errors.custom_errors import MetadataInvalidException
-from .errors.custom_errors import DataframeInvalidException
-from .metadata.bases import BASE_OUTPUT_METADATA
-from .metadata.bases import BASE_OUTPUT_STATION_METADATA
-from .metadata.metadata_handler import MetadataHandler
-from .metadata.validators import metadata_validator
-from .metadata.validators import station_metadata_validator
-from .dataframe.validators import DataframeValidator as df_validator
+astropy_units.add_enabled_units(units=astropy_units.imperial)
 
 
 class StationSet(ABC):
