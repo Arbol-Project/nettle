@@ -521,7 +521,7 @@ class StationSet(ABC):
         in astropy terms. See https://docs.astropy.org/en/stable/units/#module-astropy.units.si
         for a list of available units
         """
-        return []
+        return ["NA"]
 
     @classmethod
     def validate_station_metadata(
