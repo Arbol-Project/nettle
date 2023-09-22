@@ -385,6 +385,14 @@ class StationSet(ABC):
             station_id)
         return self.BASE_OUTPUT_STATION_METADATA if station_metadata is None else station_metadata
 
+    def get_old_or_default_stations_metadata(self) -> dict:
+        """
+        Get the old stations metadata or BASE_OUTPUT_STATION_METADATA
+        :return:
+        """
+        stations_metadata = self.metadata_handler.get_old_stations_metadata()
+        return self.BASE_OUTPUT_STATION_METADATA if stations_metadata is None else stations_metadata
+
     # def transform_raw_data()
     # def transform_raw_metadata()
 
