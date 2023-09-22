@@ -73,3 +73,4 @@ class DateRangeHandler:
         end_date = max(
             dataframe_end_date, metadata_date_end) if metadata_date_end else dataframe_end_date
         return DateRangeHandler.convert_date_range_date_to_str(begin_date, end_date)
+
