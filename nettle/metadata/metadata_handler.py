@@ -52,12 +52,6 @@ class MetadataHandler:
         old_metadata = self.get_metadata(self.METADATA_FILE_NAME, store)
         return old_metadata
 
-    def get_old_stations_metadata_by_store(self, store=None):
-        if store is None:
-            store = self.store
-        old_stations_metadata = self.get_metadata(self.STATION_METADATA_FILE_NAME, store)
-        return old_stations_metadata
-
     def get_old_metadata(
             self
     ) -> dict:
@@ -97,15 +91,3 @@ class MetadataHandler:
             self.log.info(
                 f"[metadata_handler.get_old_station_geo_metadata] old station metadata retrieved")
         return old_station_metadata
-
-    def get_old_stations_metadata(
-            self
-    ) -> dict:
-        # Get old stations metadata using current store
-        old_stations_metadata = self.get_old_stations_metadata_by_store()
-
-        if old_stations_metadata is None:
-            self.log.warn(f"[metadata_handler.get_old_stations_metadata] could not find an old stations metadata")
-        else:
-            self.log.info(f"[metadata_handler.get_old_stations_metadata] old stations metadata retrieved")
-        return old_stations_metadata

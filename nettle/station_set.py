@@ -390,11 +390,7 @@ class StationSet(ABC):
         Get the old stations metadata or BASE_OUTPUT_STATION_METADATA
         :return:
         """
-        stations_metadata = self.metadata_handler.get_old_stations_metadata()
-        return self.BASE_OUTPUT_STATION_METADATA if stations_metadata is None else stations_metadata
-
-    # def transform_raw_data()
-    # def transform_raw_metadata()
+        return self.get_old_or_default_station_geo_metadata(station_id='stations')
 
     def validate_processed_dataframe(
             self,
@@ -616,8 +612,7 @@ class StationSet(ABC):
         new_features = []
         used_ids = []
         # read in old station metadata or pull the template if None
-        base_station_geo_metadata = self.get_old_or_default_station_geo_metadata(
-            station_id='stations')
+        base_station_geo_metadata = self.get_old_or_default_stations_metadata()
         # Iterate through old features
         old_features = base_station_geo_metadata["features"]
         for old_feature in old_features:
