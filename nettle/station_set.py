@@ -3,6 +3,21 @@
 # Abstract base classes defining managers for Arbol's climate data sets to be inherited by classes that will implement set-specific
 # update, parse, and verification methods
 
+from .dataframe.validators import DataframeValidator as df_validator
+from .metadata.validators import station_metadata_validator
+from .metadata.validators import metadata_validator
+from .metadata.metadata_handler import MetadataHandler
+from .metadata.bases import BASE_OUTPUT_STATION_METADATA
+from .metadata.bases import BASE_OUTPUT_METADATA
+from .errors.custom_errors import DataframeInvalidException
+from .errors.custom_errors import MetadataInvalidException
+from .errors.custom_errors import FailedStationException
+from .utils.date_range_handler import DateRangeHandler
+from .utils.log_info import LogInfo
+from .io.store import Local
+from .io.file_handler import FileHandler
+from contextlib import contextmanager
+from copy import deepcopy
 from abc import ABC, abstractmethod
 
 import datetime
@@ -12,20 +27,9 @@ import time
 import re
 import json
 import multiprocessing
-from contextlib import contextmanager
-from .io.file_handler import FileHandler
-from .io.store import Local
-from .utils.log_info import LogInfo
-from .utils.date_range_handler import DateRangeHandler
-from .errors.custom_errors import FailedStationException
-from .errors.custom_errors import MetadataInvalidException
-from .errors.custom_errors import DataframeInvalidException
-from .metadata.bases import BASE_OUTPUT_METADATA
-from .metadata.bases import BASE_OUTPUT_STATION_METADATA
-from .metadata.metadata_handler import MetadataHandler
-from .metadata.validators import metadata_validator
-from .metadata.validators import station_metadata_validator
-from .dataframe.validators import DataframeValidator as df_validator
+# manually add in imperial units (thanks USA)
+import astropy.units as astropy_units
+astropy_units.add_enabled_units(units=astropy_units.imperial)
 
 
 class StationSet(ABC):
@@ -511,11 +515,42 @@ class StationSet(ABC):
             "[save_processed_dataframe] wrote station file to {}".format(filepath))
 
     @staticmethod
+    def units_of_measurement_exceptions() -> list:
+        """
+        :return:
+        You may want to except certain units from astropy validation.
+        We don't reccommend doing this unless you 100% can't express your unit
+        in astropy terms. See https://docs.astropy.org/en/stable/units/#module-astropy.units.si
+        for a list of available units
+        """
+        return ["NA"]
+
+    @classmethod
     def validate_station_metadata(
+            cls,
             station_metadata: dict,
             new_date_range: list
     ):
         station_metadata['features'][0]['properties']['date range'] = new_date_range
+
+        variables = deepcopy(
+            station_metadata['features'][0]['properties']['variables'])
+        unit_of_measurement_exceptions = cls.units_of_measurement_exceptions()
+
+        for variable in variables.values():
+            # we only need to check variables which are returnable
+            # on the api itself, these have an 'api name' field
+            if 'api name' in variable:
+                # check to see if a unit has been excepted
+                if variable['unit of measurement'] not in unit_of_measurement_exceptions:
+                    try:
+                        astropy_units.Quantity(
+                            1, variable['unit of measurement'])
+                    except ValueError as ve:
+                        raise MetadataInvalidException(
+                            f"[validate_station_metadata] station metadata is invalid. Unit of Measurement must be an astropy unit: {str(ve)}"
+                        ) from None
+
         if not station_metadata_validator.validate(station_metadata):
             # raise MetadataInvalidException(f"Station metadata is invalid: {station_metadata_validator.errors}")
             raise MetadataInvalidException(
@@ -590,6 +625,7 @@ class StationSet(ABC):
     def validate_metadata(
             metadata: dict
     ):
+        # Metadata will not validate data dictionary as discussed 18 september 2023
         if not metadata_validator.validate(metadata):
             # raise MetadataInvalidException(f"Metadata is invalid: {metadata_validator.errors}")
             raise MetadataInvalidException(
