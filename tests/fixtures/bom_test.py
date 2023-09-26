@@ -96,3 +96,11 @@ class BOMTest(StationSet):
         except HTTPError:
             self.log.info(f"No data available for {url_id}, {year}-{month}")
             return pd.DataFrame(columns=['dt', 'TMIN', 'TMAX', 'RAIN', 'WINDDIR', 'WINDSPEED'])
+
+    @staticmethod
+    def units_of_measurement_exceptions() -> list:
+        """
+        :return:
+        A list containing all unit of measurements that are not astropy units for that etl
+        """
+        return ['compass_points']
