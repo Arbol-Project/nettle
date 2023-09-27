@@ -11,7 +11,7 @@
         "column name": "TMIN",
         "api name": "TMIN",
         "plain text description": "Minimum temperature in the 24 hours from 9am. Sometimes only known to the nearest whole degree.",
-        "unit of measurement": "degC",
+        "unit of measurement": "deg_C",
         "precision": "0.1",
         "precision digits": "1",
         "na value": ""
@@ -20,7 +20,7 @@
         "column name": "TMAX",
         "api name": "TMAX",
         "plain text description": "Maximum temperature in the 24 hours from 9am. Sometimes only known to the nearest whole degree.",
-        "unit of measurement": "degC",
+        "unit of measurement": "deg_C",
         "precision": "0.1",
         "precision digits": "1",
         "na value": ""
