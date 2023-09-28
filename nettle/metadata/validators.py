@@ -86,7 +86,7 @@ variable_schema_else = {
         'required': True
     },
     'api name': {
-        'required': True,
+        'required': False,
         'check_with': api_uppercase_check
     }
 }
