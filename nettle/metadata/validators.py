@@ -42,7 +42,6 @@ metadata_schema = {
     }
 }
 
-
 # function for ensuring API names are uppercase
 def api_uppercase_check(field, value, error):
     if value.upper() != value:
@@ -67,12 +66,15 @@ variable_schema_0 = {
     },
     'api name': {
         'required': False
+    },
+    'filter name': {
+        'required': False
     }
 }
 
 
-# all other variables should follow this schema
-variable_schema_else = {
+# all other variables should be api variables or filters
+variable_schema_api_var = {
     'column name': {
         'type': 'string',
         'required': True
@@ -86,11 +88,35 @@ variable_schema_else = {
         'required': True
     },
     'api name': {
-        'required': False,
+        'required': True,
         'check_with': api_uppercase_check
+    },
+    'filter name': {
+        'required': False
     }
 }
 
+variable_schema_api_filt = {
+    'column name': {
+        'type': 'string',
+        'required': True
+    },
+    'unit of measurement': {
+        'type': 'string',
+        'required': True
+    },
+    'na value': {
+        'type': 'string',
+        'required': True
+    },
+    'api name': {
+        'required': False
+    },
+    'filter name': {
+        'required': True,
+        'check_with': api_uppercase_check
+    }
+}
 
 station_metadata_features_schema = {
     'type': 'dict',
@@ -121,7 +147,7 @@ station_metadata_features_schema = {
                     'required': True,
                     'valuesrules': {
                         'type': 'dict',
-                        'oneof_schema': [variable_schema_0, variable_schema_else]
+                        'oneof_schema': [variable_schema_0, variable_schema_api_var, variable_schema_api_filt]
                     }
                 }
             }
