@@ -749,3 +749,18 @@ class StationSet(ABC):
         end_date = max(
             dataframe_end_date, metadata_date_end) if metadata_date_end else dataframe_end_date
         return dataframe_date_begin != begin_date or dataframe_end_date != end_date
+
+    def get_historical_data(self, historical_filename: str) -> None | pd.DataFrame | list[pd.DataFrame] | list[None]:
+        if self.store.name() == 'ipfs':
+            # ToDo
+            return []
+        else:
+            from nettle.io.store import S3
+            historical_store = S3(bucket='arbol-station-historical', credentials_name=self.store.credentials_name)
+
+        file_path = os.path.join('historical', historical_filename)
+        historical_data = historical_store.read(file_path)
+        if historical_data is None:
+            raise FileNotFoundError(
+                f"[get_historical_data] could not find historical data {file_path}")
+        return historical_data
