@@ -15,6 +15,7 @@ from .errors.custom_errors import FailedStationException
 from .utils.date_range_handler import DateRangeHandler
 from .utils.log_info import LogInfo
 from .io.store import Local
+from .io.store import S3
 from .io.file_handler import FileHandler
 from contextlib import contextmanager
 from copy import deepcopy
@@ -69,6 +70,11 @@ class StationSet(ABC):
             relative_path = custom_relative_data_path
         self.store = store
         self.store.log = self.log
+        self.historical_s3_store = None
+        if self.store.name() == 's3':
+            historical_s3_bucket = f"{self.store.bucket.split('-')[0]}-non-gridded-initial-data-{self.store.bucket.split('-')[-1]}"
+            self.historical_s3_store = S3(bucket=historical_s3_bucket, credentials_name=self.store.credentials_name)
+            self.historical_s3_store.log = self.log
         if isinstance(self.store, Local):
             self.store.base_folder = FileHandler.PROCESSED_DATA_ROOT
         self.local_store = Local(
@@ -750,17 +756,15 @@ class StationSet(ABC):
             dataframe_end_date, metadata_date_end) if metadata_date_end else dataframe_end_date
         return dataframe_date_begin != begin_date or dataframe_end_date != end_date
 
-    def get_historical_data(self, historical_filename: str) -> None | pd.DataFrame | list[pd.DataFrame] | list[None]:
-        if self.store.name() == 'ipfs':
+    def get_historical_data(self, historical_filename: str) -> None | pd.DataFrame | list[None] | list[pd.DataFrame]:
+        if self.store.name() != 's3':
             # ToDo
             return []
-        else:
-            from nettle.io.store import S3
-            historical_store = S3(bucket='arbol-station-historical', credentials_name=self.store.credentials_name)
 
-        file_path = os.path.join('historical', historical_filename)
-        historical_data = historical_store.read(file_path)
+        file_path = os.path.join(self.file_handler.relative_path, historical_filename)
+        historical_data = self.historical_s3_store.read(file_path)
+        full_path = os.path.join(self.historical_s3_store.base_folder, file_path)
         if historical_data is None:
             raise FileNotFoundError(
-                f"[get_historical_data] could not find historical data {file_path}")
+                f"[get_historical_data] could not find historical data {full_path}")
         return historical_data
