@@ -48,8 +48,9 @@ class StationSet(ABC):
             custom_relative_data_path=None,
             store=None,
             multithread_transform=None,
-            custom_dict_path=None
-
+            custom_dict_path=None,
+            historical_store=None,
+            data_lake_store=None,
     ):
         '''
         Set member variables to defaults.
@@ -70,11 +71,12 @@ class StationSet(ABC):
             relative_path = custom_relative_data_path
         self.store = store
         self.store.log = self.log
-        self.historical_s3_store = None
-        if self.store.name() == 's3':
-            historical_s3_bucket = f"{self.store.bucket.split('-')[0]}-non-gridded-initial-data-{self.store.bucket.split('-')[-1]}"
-            self.historical_s3_store = S3(bucket=historical_s3_bucket, credentials_name=self.store.credentials_name)
-            self.historical_s3_store.log = self.log
+        if historical_store:
+            self.historical_store = historical_store
+            self.historical_store.log = self.log
+        if data_lake_store:
+            self.data_lake_store = data_lake_store
+            self.data_lake_store.log = self.log
         if isinstance(self.store, Local):
             self.store.base_folder = FileHandler.PROCESSED_DATA_ROOT
         self.local_store = Local(
@@ -762,8 +764,8 @@ class StationSet(ABC):
             return []
 
         file_path = os.path.join(self.file_handler.relative_path, historical_filename)
-        historical_data = self.historical_s3_store.read(file_path)
-        full_path = os.path.join(self.historical_s3_store.base_folder, file_path)
+        historical_data = self.historical_store.read(file_path)
+        full_path = os.path.join(self.historical_store.base_folder, file_path)
         if historical_data is None:
             raise FileNotFoundError(
                 f"[get_historical_data] could not find historical data {full_path}")
