@@ -15,6 +15,7 @@ from .errors.custom_errors import FailedStationException
 from .utils.date_range_handler import DateRangeHandler
 from .utils.log_info import LogInfo
 from .io.store import Local
+from .io.store import S3
 from .io.file_handler import FileHandler
 from contextlib import contextmanager
 from copy import deepcopy
@@ -47,8 +48,9 @@ class StationSet(ABC):
             custom_relative_data_path=None,
             store=None,
             multithread_transform=None,
-            custom_dict_path=None
-
+            custom_dict_path=None,
+            historical_store=None,
+            data_lake_store=None,
     ):
         '''
         Set member variables to defaults.
@@ -69,6 +71,12 @@ class StationSet(ABC):
             relative_path = custom_relative_data_path
         self.store = store
         self.store.log = self.log
+        if historical_store:
+            self.historical_store = historical_store
+            self.historical_store.log = self.log
+        if data_lake_store:
+            self.data_lake_store = data_lake_store
+            self.data_lake_store.log = self.log
         if isinstance(self.store, Local):
             self.store.base_folder = FileHandler.PROCESSED_DATA_ROOT
         self.local_store = Local(
@@ -749,3 +757,16 @@ class StationSet(ABC):
         end_date = max(
             dataframe_end_date, metadata_date_end) if metadata_date_end else dataframe_end_date
         return dataframe_date_begin != begin_date or dataframe_end_date != end_date
+
+    def get_historical_data(self, historical_filename: str) -> None | pd.DataFrame | list[None] | list[pd.DataFrame]:
+        if self.store.name() != 's3':
+            # ToDo
+            return []
+
+        file_path = os.path.join(self.file_handler.relative_path, historical_filename)
+        historical_data = self.historical_store.read(file_path)
+        full_path = os.path.join(self.historical_store.base_folder, file_path)
+        if historical_data is None:
+            raise FileNotFoundError(
+                f"[get_historical_data] could not find historical data {full_path}")
+        return historical_data

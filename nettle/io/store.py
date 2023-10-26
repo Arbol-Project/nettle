@@ -70,6 +70,7 @@ class S3(StoreInterface):
     ):
         super().__init__(log)
         self.bucket = bucket
+        self.credentials_name = credentials_name
         self.creds = Session(profile=credentials_name).get_credentials()
         self.base_folder = f"s3://{self.bucket}/"
 
