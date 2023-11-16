@@ -18,4 +18,4 @@ jobs:
             curl -X POST https://api.github.com/repos/${{ matrix.repo }}/dispatches \
             -H "Accept: application/vnd.github.everest-preview+json" \
             -H "Authorization: token ${{ secrets.DISPATCH_TOKEN }}" \
-            --data '{"event_type": "Trigger Workflow", "client_payload": { "repository": "'"$GITHUB_REPOSITORY"'" }'
+            --data '{"event_type": "non-gridded-build", "client_payload": { "repository": "'"$GITHUB_REPOSITORY"'" }'
