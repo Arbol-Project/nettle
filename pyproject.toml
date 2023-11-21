@@ -1,6 +1,6 @@
 [build-system]
 requires = [
-    "setuptools>=45",
+    "setuptools>=61.2",
     "wheel",
     "setuptools_scm>=6.2"
 ]
@@ -8,7 +8,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nettle"
-version = "0.0.5"
+dynamic = ['readme', 'description','version']
 # build is warning that dependencies are listed in setup cfg, if this turn out to be a problem later, remove from there and uncomment these
 #dependencies = ['geopandas', 'numpy', 'pandas', 'pyarrow', 'python-dotenv', 'python-dateutil', 'urllib3', 'dag_cbor', 's3fs', 'shapely', 'cerberus', 'coverage', 'astropy']
 requires-python = ">3.10"
@@ -17,7 +17,25 @@ authors = [
     { name = "Kiran Morrison", email = "kiran@arbol.io" }
 ]
 keywords = ['Climate', 'ETL', 'IPFS', 'S3']
-dynamic = ['readme', 'description']
+description = Tools for writing climate data etls using S3 or IPFS as a backing store
+long_description = A set of utilities for building ETLs of 2D data. Designed with climate data in mind, typically station based, and with storage on both s3 and IPFS available.
+zip_safe = True
+include_package_data = True
+python_requires = >=3.10
+dependencies = [
+    "geopandas",
+    "numpy",
+    "pandas",
+    "pyarrow",
+    "python-dotenv",
+    "python-dateutil",
+    "urllib3",
+    "dag_cbor",
+    "s3fs",
+    "shapely",
+    "cerberus",
+    "coverage",
+    "astropy"]
 
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -42,3 +60,9 @@ write_to = "nettle/_version.py"
 [project.urls]
 "Homepage" = "https://arbol.io/"
 "Bug Tracker" = "https://github.com/Arbol-Project/nettle/issues"
+
+[tool.setuptools.package-data]
+etls = conf/*.json, static/data_dictionaries/*.json, static/station_info/*.json, *.txt
+
+[tool.setuptools.packages.find]
+exclude = ["docs*", "tests*", "examples"]
