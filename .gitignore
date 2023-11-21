@@ -27,7 +27,7 @@ share/python-wheels/
 *.egg
 MANIFEST
 nettle/_version.py
-station_etl_tools.egg-info/
+nettle.egg-info/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

@@ -8,7 +8,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nettle"
-version = "0.0.4"
+version = "0.0.5"
+# build is warning that dependencies are listed in setup cfg, if this turn out to be a problem later, remove from there and uncomment these
+#dependencies = ['geopandas', 'numpy', 'pandas', 'pyarrow', 'python-dotenv', 'python-dateutil', 'urllib3', 'dag_cbor', 's3fs', 'shapely', 'cerberus', 'coverage', 'astropy']
+requires-python = ">3.10"
 authors = [
     { name = "Alisson Pinto", email = "alisson.pinto@clevertech.biz" },
     { name = "Kiran Morrison", email = "kiran@arbol.io" }
