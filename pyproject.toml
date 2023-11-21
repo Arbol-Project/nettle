@@ -8,20 +8,33 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nettle"
-dynamic = ['readme', 'description','version']
-# build is warning that dependencies are listed in setup cfg, if this turn out to be a problem later, remove from there and uncomment these
-#dependencies = ['geopandas', 'numpy', 'pandas', 'pyarrow', 'python-dotenv', 'python-dateutil', 'urllib3', 'dag_cbor', 's3fs', 'shapely', 'cerberus', 'coverage', 'astropy']
+
+# Where is version coming from?
+#dynamic = ['version']
+version = "0.4.4"
+
 requires-python = ">3.10"
 authors = [
     { name = "Alisson Pinto", email = "alisson.pinto@clevertech.biz" },
     { name = "Kiran Morrison", email = "kiran@arbol.io" }
 ]
 keywords = ['Climate', 'ETL', 'IPFS', 'S3']
-description = Tools for writing climate data etls using S3 or IPFS as a backing store
-long_description = A set of utilities for building ETLs of 2D data. Designed with climate data in mind, typically station based, and with storage on both s3 and IPFS available.
-zip_safe = True
-include_package_data = True
-python_requires = >=3.10
+description = "Tools for writing climate data etls using S3 or IPFS as a backing store"
+
+# The contents of the README file(s) are used to populate the Description field of your distribution’s metadata
+# (similar to long_description in setuptools). When multiple files are specified they are concatenated with newlines.
+# https://python-poetry.org/docs/pyproject/#readme
+# long-description = 'A set of utilities for building ETLs of 2D data. Designed with climate data in mind, typically station based, and with storage on both s3 and IPFS available.'
+readme = "README.md"
+
+# Obsolete - only relevant for pkg_resources, easy_install and setup.py install in the context of eggs (deprecated).
+# Was giving error: configuration error: `project` must not contain {'zip-safe'} properties
+#zip-safe = true
+
+# By default, include-package-data is true in pyproject.toml, so you do
+# NOT have to specify this line.
+# include-package-data = true
+
 dependencies = [
     "geopandas",
     "numpy",
@@ -35,7 +48,8 @@ dependencies = [
     "shapely",
     "cerberus",
     "coverage",
-    "astropy"]
+    "astropy"
+]
 
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -49,8 +63,8 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Atmospheric Science"
 ]
 
-[tool.setuptools]
-packages=['nettle', 'nettle.utils', 'nettle.errors', 'nettle.io', 'nettle.metadata', 'nettle.dataframe']
+#[tool.setuptools]
+#packages=['nettle', 'nettle.utils', 'nettle.errors', 'nettle.io', 'nettle.metadata', 'nettle.dataframe']
 
 [tool.setuptools_scm]
 version_scheme = "post-release"
@@ -62,7 +76,7 @@ write_to = "nettle/_version.py"
 "Bug Tracker" = "https://github.com/Arbol-Project/nettle/issues"
 
 [tool.setuptools.package-data]
-etls = conf/*.json, static/data_dictionaries/*.json, static/station_info/*.json, *.txt
+"*" = ["*.txt"]
 
 [tool.setuptools.packages.find]
-exclude = ["docs*", "tests*", "examples"]
+exclude = ["docs*", "examples*"]
