@@ -7,9 +7,9 @@ from nettle.io.store import Local
 from nettle.metadata.bases import BASE_OUTPUT_METADATA
 from nettle.metadata.bases import BASE_OUTPUT_STATION_METADATA
 import pandas as pd
-from tests.fixtures.bom_test import BOMTest
-from tests.fixtures.metadatas import kalumburu_metadata
-from tests.fixtures.metadatas import bom_metadata
+from nettle_tests.fixtures.bom_test import BOMTest
+from nettle_tests.fixtures.metadatas import kalumburu_metadata
+from nettle_tests.fixtures.metadatas import bom_metadata
 from nettle.errors.custom_errors import FailedStationException
 from nettle.errors.custom_errors import DataframeInvalidException
 from nettle.errors.custom_errors import MetadataInvalidException

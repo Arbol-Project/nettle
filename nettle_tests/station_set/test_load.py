@@ -2,7 +2,7 @@ import os
 from unittest import TestCase
 from unittest.mock import patch
 from nettle.io.store import Local
-from tests.fixtures.bom_test import BOMTest
+from nettle_tests.fixtures.bom_test import BOMTest
 
 class LoadTestCase(TestCase):
     def setUp(self):

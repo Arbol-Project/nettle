@@ -6,7 +6,7 @@ from unittest.mock import patch
 from nettle.io.store import Local
 from nettle.utils.log_info import LogInfo
 from nettle.errors.custom_errors import FailedStationException
-from tests.fixtures.bom_test import BOMTest
+from nettle_tests.fixtures.bom_test import BOMTest
 
 class ExtractMethodsTestCase(TestCase):
     def setUp(self):

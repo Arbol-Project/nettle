@@ -1,10 +1,10 @@
 from unittest import TestCase
 from unittest.mock import patch
 from nettle.metadata.metadata_handler import MetadataHandler
-from tests.fixtures.data_dicts import bom_data_dict
-from tests.fixtures.station_dicts import bom_station_dict
-from tests.fixtures.metadatas import bom_metadata
-from tests.fixtures.metadatas import kalumburu_metadata
+from nettle_tests.fixtures.data_dicts import bom_data_dict
+from nettle_tests.fixtures.station_dicts import bom_station_dict
+from nettle_tests.fixtures.metadatas import bom_metadata
+from nettle_tests.fixtures.metadatas import kalumburu_metadata
 
 class MetadataHandlerTestCase(TestCase):
     def setUp(self):

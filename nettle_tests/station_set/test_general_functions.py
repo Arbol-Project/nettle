@@ -3,8 +3,8 @@ import pandas as pd
 from unittest import TestCase
 from unittest.mock import patch
 from nettle.io.store import Local
-from tests.fixtures.bom_test import BOMTest
-from tests.fixtures.metadatas import kalumburu_metadata
+from nettle_tests.fixtures.bom_test import BOMTest
+from nettle_tests.fixtures.metadatas import kalumburu_metadata
 
 class GeneralFunctionsTestCase(TestCase):
     def setUp(self):
