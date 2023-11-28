@@ -14,16 +14,16 @@ class ExtractMethodsTestCase(TestCase):
         self.etl = BOMTest(
             log=self.log,
             store=Local(),
-            custom_dict_path=f"tests/fixtures/"
+            custom_dict_path=f"nettle_tests/fixtures/"
         )
 
     @classmethod
     def setUpClass(cls):
-        os.makedirs(f"tests/temp_folder_for_test/")
+        os.makedirs(f"nettle_tests/temp_folder_for_test/")
 
     @classmethod
     def tearDownClass(cls):
-        os.rmdir(f"tests/temp_folder_for_test/")
+        os.rmdir(f"nettle_tests/temp_folder_for_test/")
 
     def test_save_raw_dataframe(self):
         d = {'col1': [1, 2], 'col2': [3, 4]}
@@ -31,7 +31,7 @@ class ExtractMethodsTestCase(TestCase):
         station_id = 'STATION_IDENTIFIER'
 
         file_name = f"{self.etl.station_name_formatter(station_id)}.csv"
-        self.etl.file_handler.RAW_DATA_PATH = 'tests/temp_folder_for_test/'
+        self.etl.file_handler.RAW_DATA_PATH = "nettle_tests/temp_folder_for_test/"
         filepath = os.path.join(self.etl.file_handler.RAW_DATA_PATH, file_name)
 
         with self.assertLogs('', level='INFO') as cm:

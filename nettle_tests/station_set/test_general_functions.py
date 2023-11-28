@@ -13,7 +13,7 @@ class GeneralFunctionsTestCase(TestCase):
         self.etl = BOMTest(
             log=self.log,
             store=Local(),
-            custom_dict_path=f"tests/fixtures/"
+            custom_dict_path=f"nettle_tests/fixtures/"
         )
 
     def test_station_name_formatter(self):

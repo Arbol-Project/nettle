@@ -21,14 +21,14 @@ class TransformMethodsTestCase(TestCase):
         self.etl = BOMTest(
             log=self.log,
             store=Local(),
-            custom_dict_path=f"tests/fixtures/"
+            custom_dict_path=f"nettle_tests/fixtures/"
         )
 
     def test_transform(self):
         pass
 
     def test_get_stations_to_transform(self):
-        self.etl.file_handler.RAW_DATA_PATH = f"tests/fixtures/"
+        self.etl.file_handler.RAW_DATA_PATH = f"nettle_tests/fixtures/"
         self.assertEqual(self.etl.get_stations_to_transform(), ['KALUMBURU'])
 
     @patch('time.time')
@@ -61,7 +61,7 @@ class TransformMethodsTestCase(TestCase):
         )
 
     def test_read_raw_station_data(self):
-        self.etl.file_handler.RAW_DATA_PATH = f"tests/fixtures/"
+        self.etl.file_handler.RAW_DATA_PATH = f"nettle_tests/fixtures/"
         with self.assertLogs('', level='INFO') as cm:
             df = self.etl.read_raw_station_data('KALUMBURU')
 
