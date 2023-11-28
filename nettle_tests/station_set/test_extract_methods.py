@@ -7,6 +7,9 @@ from nettle.io.store import Local
 from nettle.utils.log_info import LogInfo
 from nettle.errors.custom_errors import FailedStationException
 from nettle_tests.fixtures.bom_test import BOMTest
+import nettle_tests
+
+nettle_tests_dir = os.path.dirname(nettle_tests.__file__)
 
 class ExtractMethodsTestCase(TestCase):
     def setUp(self):
@@ -14,16 +17,16 @@ class ExtractMethodsTestCase(TestCase):
         self.etl = BOMTest(
             log=self.log,
             store=Local(),
-            custom_dict_path=f"nettle_tests/fixtures/"
+            custom_dict_path=f"{nettle_tests_dir}/fixtures/"
         )
 
     @classmethod
     def setUpClass(cls):
-        os.makedirs(f"nettle_tests/temp_folder_for_test/")
+        os.makedirs(f"{nettle_tests_dir}/temp_folder_for_test/")
 
     @classmethod
     def tearDownClass(cls):
-        os.rmdir(f"nettle_tests/temp_folder_for_test/")
+        os.rmdir(f"{nettle_tests_dir}/temp_folder_for_test/")
 
     def test_save_raw_dataframe(self):
         d = {'col1': [1, 2], 'col2': [3, 4]}
@@ -31,7 +34,7 @@ class ExtractMethodsTestCase(TestCase):
         station_id = 'STATION_IDENTIFIER'
 
         file_name = f"{self.etl.station_name_formatter(station_id)}.csv"
-        self.etl.file_handler.RAW_DATA_PATH = "nettle_tests/temp_folder_for_test/"
+        self.etl.file_handler.RAW_DATA_PATH = f"{nettle_tests_dir}/temp_folder_for_test/"
         filepath = os.path.join(self.etl.file_handler.RAW_DATA_PATH, file_name)
 
         with self.assertLogs('', level='INFO') as cm:

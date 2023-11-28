@@ -4,7 +4,7 @@ import pandas as pd
 import logging
 from nettle.utils.date_range_handler import DateRangeHandler
 from nettle.utils.log_info import LogInfo
-from .fixtures.metadatas import kalumburu_metadata
+from nettle_tests.fixtures.metadatas import kalumburu_metadata
 
 
 class DateRangeHandlerTestCase(TestCase):

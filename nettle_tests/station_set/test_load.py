@@ -11,7 +11,7 @@ class LoadTestCase(TestCase):
         self.etl = BOMTest(
             log=self.log,
             store=Local(),
-            custom_dict_path=f"nettle_tests/fixtures/"
+            custom_dict_path=f"{nettle_tests_dir}/fixtures/"
         )
 
     # This is a system test to check a copy from local to s3

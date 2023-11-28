@@ -3,6 +3,9 @@ from unittest import TestCase
 from unittest.mock import patch
 from nettle.io.store import Local
 from nettle_tests.fixtures.bom_test import BOMTest
+import nettle_tests
+
+nettle_tests_dir = os.path.dirname(nettle_tests.__file__)
 
 class HelperMethodsTestCase(TestCase):
     def setUp(self):
@@ -11,7 +14,7 @@ class HelperMethodsTestCase(TestCase):
         self.etl = BOMTest(
             log=self.log,
             store=Local(),
-            custom_dict_path=f"nettle_tests/fixtures/"
+            custom_dict_path=f"{nettle_tests_dir}/fixtures/"
         )
 
     def test__str__(self):
@@ -21,7 +24,7 @@ class HelperMethodsTestCase(TestCase):
         self.etl2 = BOMTest(
             log=self.log,
             store=Local(),
-            custom_dict_path=f"nettle_tests/fixtures/"
+            custom_dict_path=f"{nettle_tests_dir}/fixtures/"
         )
         self.assertTrue(self.etl == self.etl2)
 
@@ -30,7 +33,7 @@ class HelperMethodsTestCase(TestCase):
         self.assertTrue(isinstance(etl_hash, int))
 
     def test_default_dict_path(self):
-        self.assertEqual(self.etl.default_dict_path(), f"nettle_tests/fixtures/")
+        self.assertEqual(self.etl.default_dict_path(), f"{nettle_tests_dir}/fixtures/")
         self.etl.custom_dict_path = None
         self.assertEqual(self.etl.default_dict_path(), os.path.join(os.getcwd(), 'non_gridded_etl_managers'))
 
