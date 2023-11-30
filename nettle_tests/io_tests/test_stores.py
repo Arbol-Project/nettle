@@ -7,9 +7,11 @@ import botocore
 import os
 import fsspec
 import pandas as pd
+import nettle_tests
 
 s3_bucket_name = "arbol-station-dev"
 credentials_name = "arbol-dev"
+nettle_tests_dir = os.path.dirname(nettle_tests.__file__)
 
 class StoreTestCase(TestCase):
     def setUp(self):
@@ -141,11 +143,11 @@ class LocalStoreTestCase(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        os.makedirs(f"tests/temp_folder_for_test/")
+        os.makedirs(f"{nettle_tests_dir}/temp_folder_for_test/")
 
     @classmethod
     def tearDownClass(cls):
-        os.rmdir(f"tests/temp_folder_for_test/")
+        os.rmdir(f"{nettle_tests_dir}/temp_folder_for_test/")
 
     def test_fs(self):
         self.assertTrue(self.local_store.fs())
@@ -155,7 +157,7 @@ class LocalStoreTestCase(TestCase):
     #     list directory not implemented yet in Local
 
     def test_has_existing_file(self):
-        self.assertTrue(self.local_store.has_existing_file(f"tests/fixtures/metadatas.py"))
+        self.assertTrue(self.local_store.has_existing_file(f"{nettle_tests_dir}/fixtures/metadatas.py"))
 
     def test_has_existing_file_but_file_dont_exist(self):
         self.assertFalse(self.local_store.has_existing_file(f"path_non_existent_d1b034"))
@@ -163,7 +165,7 @@ class LocalStoreTestCase(TestCase):
     def test_has_existing_file_full_path(self):
         full_filepath_exists = os.path.join(
             self.local_store.base_folder,
-            f"tests/fixtures/metadatas.py"
+            f"{nettle_tests_dir}/fixtures/metadatas.py"
         )
         self.assertTrue(self.local_store.has_existing_file_full_path(full_filepath_exists))
 
@@ -176,21 +178,21 @@ class LocalStoreTestCase(TestCase):
 
     def test_write_none_json(self):
         with self.assertRaises(Exception) as cm:
-            self.local_store.write(f"tests/temp_folder_for_test/test_metadata_none.json", None)
+            self.local_store.write(f"{nettle_tests_dir}/temp_folder_for_test/test_metadata_none.json", None)
         self.assertEqual(
             "[store.write] content file not identified",
             str(cm.exception)
         )
-        os.remove(f"tests/temp_folder_for_test/test_metadata_none.json")
+        os.remove(f"{nettle_tests_dir}/temp_folder_for_test/test_metadata_none.json")
 
     def test_write_none_csv(self):
         with self.assertRaises(Exception) as cm:
-            self.local_store.write(f"tests/temp_folder_for_test/test_metadata_none.csv", None)
+            self.local_store.write(f"{nettle_tests_dir}/temp_folder_for_test/test_metadata_none.csv", None)
         self.assertEqual(
             "[store.write] content file not identified",
             str(cm.exception)
         )
-        os.remove(f"tests/temp_folder_for_test/test_metadata_none.csv")
+        os.remove(f"{nettle_tests_dir}/temp_folder_for_test/test_metadata_none.csv")
 
     def test_write_without_termination(self):
         # self.local_store.log = Mock()
@@ -199,22 +201,22 @@ class LocalStoreTestCase(TestCase):
         # other option:
         # MagicMock(side_effect=lambda x: print(x))
         content = {"a": 1, "b": 2}
-        filepath = self.local_store.write(f"tests/temp_folder_for_test/test_metadata_without_termination", content)
-        self.assertEqual(filepath, f"tests/temp_folder_for_test/test_metadata_without_termination")
-        os.remove(f"tests/temp_folder_for_test/test_metadata_without_termination")
+        filepath = self.local_store.write(f"{nettle_tests_dir}/temp_folder_for_test/test_metadata_without_termination", content)
+        self.assertEqual(filepath, f"{nettle_tests_dir}/temp_folder_for_test/test_metadata_without_termination")
+        os.remove(f"{nettle_tests_dir}/temp_folder_for_test/test_metadata_without_termination")
 
     def test_write_json(self):
         content = {"a": 1, "b": 2}
-        filepath = self.local_store.write(f"tests/temp_folder_for_test/test_metadata.json", content)
-        self.assertEqual(filepath, f"tests/temp_folder_for_test/test_metadata.json")
-        os.remove(f"tests/temp_folder_for_test/test_metadata.json")
+        filepath = self.local_store.write(f"{nettle_tests_dir}/temp_folder_for_test/test_metadata.json", content)
+        self.assertEqual(filepath, f"{nettle_tests_dir}/temp_folder_for_test/test_metadata.json")
+        os.remove(f"{nettle_tests_dir}/temp_folder_for_test/test_metadata.json")
 
     def test_write_csv(self):
         d = {'col1': [1, 2], 'col2': [3, 4]}
         df = pd.DataFrame(data=d)
-        filepath = self.local_store.write(f"tests/temp_folder_for_test/KALUMBRU.csv", df)
-        self.assertEqual(filepath, f"tests/temp_folder_for_test/KALUMBRU.csv")
-        os.remove(f"tests/temp_folder_for_test/KALUMBRU.csv")
+        filepath = self.local_store.write(f"{nettle_tests_dir}/temp_folder_for_test/KALUMBRU.csv", df)
+        self.assertEqual(filepath, f"{nettle_tests_dir}/temp_folder_for_test/KALUMBRU.csv")
+        os.remove(f"{nettle_tests_dir}/temp_folder_for_test/KALUMBRU.csv")
 
     def test_read_without_termination(self):
         content_non_existent = self.local_store.read(f"metadata")
@@ -229,9 +231,9 @@ class LocalStoreTestCase(TestCase):
         self.assertFalse(content_non_existent)
 
     def test_read_json(self):
-        content = self.local_store.read(f"tests/fixtures/metadata.json")
+        content = self.local_store.read(f"{nettle_tests_dir}/fixtures/metadata.json")
         self.assertTrue(content)
 
     def test_read_csv(self):
-        content = self.local_store.read(f"tests/fixtures/KALUMBURU.csv")
+        content = self.local_store.read(f"{nettle_tests_dir}/fixtures/KALUMBURU.csv")
         self.assertTrue(content is not None)

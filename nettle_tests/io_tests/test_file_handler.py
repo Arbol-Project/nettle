@@ -3,7 +3,7 @@ import json
 import tempfile
 from unittest import TestCase
 from nettle.io.file_handler import FileHandler
-from tests.fixtures.metadatas import kalumburu_metadata
+from nettle_tests.fixtures.metadatas import kalumburu_metadata
 
 class FileHandlerTestCase(TestCase):
     def setUp(self):

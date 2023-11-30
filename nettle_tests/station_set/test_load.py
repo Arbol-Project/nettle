@@ -2,7 +2,7 @@ import os
 from unittest import TestCase
 from unittest.mock import patch
 from nettle.io.store import Local
-from tests.fixtures.bom_test import BOMTest
+from nettle_tests.fixtures.bom_test import BOMTest
 
 class LoadTestCase(TestCase):
     def setUp(self):
@@ -11,7 +11,7 @@ class LoadTestCase(TestCase):
         self.etl = BOMTest(
             log=self.log,
             store=Local(),
-            custom_dict_path=f"tests/fixtures/"
+            custom_dict_path=f"{nettle_tests_dir}/fixtures/"
         )
 
     # This is a system test to check a copy from local to s3

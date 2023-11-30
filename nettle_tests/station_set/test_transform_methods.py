@@ -7,13 +7,16 @@ from nettle.io.store import Local
 from nettle.metadata.bases import BASE_OUTPUT_METADATA
 from nettle.metadata.bases import BASE_OUTPUT_STATION_METADATA
 import pandas as pd
-from tests.fixtures.bom_test import BOMTest
-from tests.fixtures.metadatas import kalumburu_metadata
-from tests.fixtures.metadatas import bom_metadata
+from nettle_tests.fixtures.bom_test import BOMTest
+from nettle_tests.fixtures.metadatas import kalumburu_metadata
+from nettle_tests.fixtures.metadatas import bom_metadata
 from nettle.errors.custom_errors import FailedStationException
 from nettle.errors.custom_errors import DataframeInvalidException
 from nettle.errors.custom_errors import MetadataInvalidException
 from nettle.station_set import StationSet
+import nettle_tests
+
+nettle_tests_dir = os.path.dirname(nettle_tests.__file__)
 
 class TransformMethodsTestCase(TestCase):
     def setUp(self):
@@ -21,14 +24,14 @@ class TransformMethodsTestCase(TestCase):
         self.etl = BOMTest(
             log=self.log,
             store=Local(),
-            custom_dict_path=f"tests/fixtures/"
+            custom_dict_path=f"{nettle_tests_dir}/fixtures/"
         )
 
     def test_transform(self):
         pass
 
     def test_get_stations_to_transform(self):
-        self.etl.file_handler.RAW_DATA_PATH = f"tests/fixtures/"
+        self.etl.file_handler.RAW_DATA_PATH = f"{nettle_tests_dir}/fixtures/"
         self.assertEqual(self.etl.get_stations_to_transform(), ['KALUMBURU'])
 
     @patch('time.time')
@@ -61,7 +64,7 @@ class TransformMethodsTestCase(TestCase):
         )
 
     def test_read_raw_station_data(self):
-        self.etl.file_handler.RAW_DATA_PATH = f"tests/fixtures/"
+        self.etl.file_handler.RAW_DATA_PATH = f"{nettle_tests_dir}/fixtures/"
         with self.assertLogs('', level='INFO') as cm:
             df = self.etl.read_raw_station_data('KALUMBURU')
 
