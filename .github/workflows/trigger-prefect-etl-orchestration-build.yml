@@ -13,6 +13,9 @@ jobs:
         repo: ['Arbol-Project/prefect-etl-orchestration']
     timeout-minutes: 5
     steps:
+      - name: Run unit tests
+        run: |
+            python -m unittest      
       - name: Dispatch to workflows
         run: |
             curl -X POST https://api.github.com/repos/${{ matrix.repo }}/dispatches \
