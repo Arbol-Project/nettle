@@ -27,7 +27,7 @@ jobs:
       - name: Create env, install packages & run tests
         working-directory: nettle
         run: |
-              python -m venv ./chiquititas
+              python -m venv ./venv
               source chiquititas/bin/activate
               pip install -r requirements.txt
               pip install .
