@@ -1,7 +1,7 @@
 name: Trigger to build prefect-etl-orchestration workflow for gridded ETL containers
 on:
   push:
-    branches: [main, actions_unittests]
+    branches: [main]
   workflow_dispatch:
 
 jobs:
