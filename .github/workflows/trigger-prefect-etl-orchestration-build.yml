@@ -33,9 +33,9 @@ jobs:
               pip install .
               python -m unittest
 
-#      - name: Dispatch to workflows
-#        run: |
-#            curl -X POST https://api.github.com/repos/${{ matrix.repo }}/dispatches \
-#            -H "Accept: application/vnd.github.everest-preview+json" \
-#            -H "Authorization: token ${{ secrets.DISPATCH_TOKEN }}" \
-#            --data '{"event_type": "non-gridded-build", "client_payload": { "repository": "'"$GITHUB_REPOSITORY"'" }'
+      - name: Dispatch to workflows
+        run: |
+            curl -X POST https://api.github.com/repos/${{ matrix.repo }}/dispatches \
+            -H "Accept: application/vnd.github.everest-preview+json" \
+            -H "Authorization: token ${{ secrets.DISPATCH_TOKEN }}" \
+            --data '{"event_type": "non-gridded-build", "client_payload": { "repository": "'"$GITHUB_REPOSITORY"'" }'
