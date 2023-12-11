@@ -25,9 +25,10 @@ jobs:
               source chiquititas/bin/activate
               pip install -r requirements.txt
               pip install .
+              pip list
 
       - name: Run unit tests
-        run: pip list; python -m unittest
+        run: python -m unittest
         working-directory: nettle
 #      - name: Dispatch to workflows
 #        run: |
