@@ -17,16 +17,15 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Create new virtual env and install packages for python
-
         run: |
               cd nettle
-              python3.8 -m venv ./chiquititas
+              python -m venv ./chiquititas
               source chiquititas/bin/activate
               pip install -r requirements.txt
               pip install .
 
       - name: Run unit tests
-        run: python3.8 -m unittest
+        run: python -m unittest
 #      - name: Dispatch to workflows
 #        run: |
 #            curl -X POST https://api.github.com/repos/${{ matrix.repo }}/dispatches \
