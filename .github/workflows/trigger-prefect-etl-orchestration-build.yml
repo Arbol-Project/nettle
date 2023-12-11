@@ -16,12 +16,12 @@ jobs:
       - name: Clone repository in Github Action
         run: git clone https://github.com/Arbol-Project/nettle
 
-      - name: Create new virtual env for python
+      - name: Create new virtual env and install packages for python
         run: |
-              cd nettle
-              python -m venv ./chiquititas
-              source chiquititas/bin/activate
-              pip install -r requirements.txt
+              cd nettle; \
+              python -m venv ./chiquititas; \
+              source chiquititas/bin/activate; \
+              pip install -r requirements.txt; \
               pip install .
 
       - name: Run unit tests
