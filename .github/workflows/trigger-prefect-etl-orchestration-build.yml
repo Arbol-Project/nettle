@@ -13,6 +13,26 @@ jobs:
         repo: ['Arbol-Project/prefect-etl-orchestration']
     timeout-minutes: 5
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: nettle
+
+      - name: Add mock profile credentials to ~/.aws/credentials
+        run: |
+              aws configure set aws_access_key_id foo --profile arbol-dev
+              aws configure set aws_secret_access_key bar --profile arbol-dev
+              aws configure set region us-west-2 --profile arbol-dev
+
+      - name: Create env, install packages & run tests
+        working-directory: nettle
+        run: |
+              python -m venv ./venv
+              source venv/bin/activate
+              pip install -r requirements.txt
+              pip install .
+              python -m unittest
+
       - name: Dispatch to workflows
         run: |
             curl -X POST https://api.github.com/repos/${{ matrix.repo }}/dispatches \
