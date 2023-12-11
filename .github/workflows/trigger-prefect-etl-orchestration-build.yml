@@ -28,6 +28,7 @@ jobs:
 
       - name: Run unit tests
         run: python -m unittest
+        working-directory: nettle
 #      - name: Dispatch to workflows
 #        run: |
 #            curl -X POST https://api.github.com/repos/${{ matrix.repo }}/dispatches \
