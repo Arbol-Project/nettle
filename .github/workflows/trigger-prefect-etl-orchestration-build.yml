@@ -18,12 +18,11 @@ jobs:
         with:
           path: nettle
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: empty_value
-          aws-secret-access-key: empty_value
-          aws-region: us-east-2
+      - name: Add mock profile credentials to ~/.aws/credentials
+         run: |
+            aws configure set aws_access_key_id foo --profile arbol-dev
+            aws configure set aws_secret_access_key bar --profile arbol-dev
+            aws configure set region us-west-2 --profile arbol-dev
 
       - name: Create new virtual env and install packages for python
         run: |
