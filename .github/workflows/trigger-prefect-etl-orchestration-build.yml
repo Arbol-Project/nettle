@@ -27,7 +27,7 @@ jobs:
               pip install .
 
       - name: Run unit tests
-        run: python -m unittest
+        run: pip list; python -m unittest
         working-directory: nettle
 #      - name: Dispatch to workflows
 #        run: |
