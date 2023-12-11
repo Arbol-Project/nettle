@@ -13,19 +13,17 @@ jobs:
         repo: ['Arbol-Project/prefect-etl-orchestration']
     timeout-minutes: 5
     steps:
-      - name: Clone repository in Github Action
-        run: git clone https://github.com/Arbol-Project/nettle
-
       - name: Create new virtual env and install packages for python
+        uses: actions/checkout@v4
         run: |
-              cd nettle; \
-              python -m venv ./chiquititas; \
+              cd nettle
+              python3.8 -m venv ./chiquititas
               source chiquititas/bin/activate
-#              pip install -r requirements.txt;
-#              pip install .
+              pip install -r requirements.txt
+              pip install .
 
       - name: Run unit tests
-        run: python -m unittest
+        run: python3.8 -m unittest
 #      - name: Dispatch to workflows
 #        run: |
 #            curl -X POST https://api.github.com/repos/${{ matrix.repo }}/dispatches \
