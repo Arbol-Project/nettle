@@ -1,7 +1,7 @@
 name: Trigger to build prefect-etl-orchestration workflow for gridded ETL containers
 on:
   push:
-    branches: [main]
+    branches: [main, actions_unittests]
   workflow_dispatch:
 
 jobs:
@@ -43,3 +43,4 @@ jobs:
 #            -H "Accept: application/vnd.github.everest-preview+json" \
 #            -H "Authorization: token ${{ secrets.DISPATCH_TOKEN }}" \
 #            --data '{"event_type": "non-gridded-build", "client_payload": { "repository": "'"$GITHUB_REPOSITORY"'" }'
+#
