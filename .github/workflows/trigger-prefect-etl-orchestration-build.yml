@@ -24,22 +24,18 @@ jobs:
               aws configure set aws_secret_access_key bar --profile arbol-dev
               aws configure set region us-west-2 --profile arbol-dev
 
-      - name: Create new virtual env and install packages for python
+      - name: Create env, install packages & run tests
         working-directory: nettle
         run: |
               python -m venv ./chiquititas
               source chiquititas/bin/activate
               pip install -r requirements.txt
               pip install .
-#              python -m unittest
+              python -m unittest
 
-      - name: Run unit tests
-        run: python -m unittest
-        working-directory: nettle
 #      - name: Dispatch to workflows
 #        run: |
 #            curl -X POST https://api.github.com/repos/${{ matrix.repo }}/dispatches \
 #            -H "Accept: application/vnd.github.everest-preview+json" \
 #            -H "Authorization: token ${{ secrets.DISPATCH_TOKEN }}" \
 #            --data '{"event_type": "non-gridded-build", "client_payload": { "repository": "'"$GITHUB_REPOSITORY"'" }'
-#
