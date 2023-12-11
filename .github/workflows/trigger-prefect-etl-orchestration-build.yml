@@ -13,8 +13,11 @@ jobs:
         repo: ['Arbol-Project/prefect-etl-orchestration']
     timeout-minutes: 5
     steps:
-      - name: Create new virtual env and install packages for python
+      - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Create new virtual env and install packages for python
+
         run: |
               cd nettle
               python3.8 -m venv ./chiquititas
