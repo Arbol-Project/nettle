@@ -347,17 +347,14 @@ class StationSet(ABC):
             # validate processed dataframe ensuring format is okay (using validators)
             self.validate_processed_dataframe(processed_dataframe)
 
-            # add date range and data dict to station level metadata
             # save processed data to processed_data/station_id.csv
-            # this is also where combination with old data occurs
-            # return new date range!!!
+            # return new date range and combined processed dataframe
             new_date_range, combined_processed_dataframe = self.save_processed_data(
                 processed_dataframe, station_id, **kwargs)
-
+            # add date range and data dict to station level metadata
             self.programmatic_station_metadata_update(
                 processed_dataframe, combined_processed_dataframe, processed_station_metadata, **kwargs)
             # validate station level metadata according to validators
-            # add in new date range
             self.validate_station_metadata(
                 processed_station_metadata, new_date_range)
             # save processed metadata to processed_data/station_id.geojson
