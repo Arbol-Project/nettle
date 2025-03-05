@@ -346,16 +346,15 @@ class StationSet(ABC):
                 raw_station_metadata, station_id, **kwargs)
             # validate processed dataframe ensuring format is okay (using validators)
             self.validate_processed_dataframe(processed_dataframe)
+
+            # save processed data to processed_data/station_id.csv
+            # return new date range and combined processed dataframe
+            new_date_range, combined_processed_dataframe = self.save_processed_data(
+                processed_dataframe, station_id, **kwargs)
             # add date range and data dict to station level metadata
             self.programmatic_station_metadata_update(
-                processed_dataframe, processed_station_metadata, **kwargs)
-            # save processed data to processed_data/station_id.csv
-            # this is also where combination with old data occurs
-            # return new date range!!!
-            new_date_range = self.save_processed_data(
-                processed_dataframe, station_id, **kwargs)
+                processed_dataframe, combined_processed_dataframe, processed_station_metadata, **kwargs)
             # validate station level metadata according to validators
-            # add in new date range
             self.validate_station_metadata(
                 processed_station_metadata, new_date_range)
             # save processed metadata to processed_data/station_id.geojson
@@ -418,13 +417,14 @@ class StationSet(ABC):
     def programmatic_station_metadata_update(
             self,
             processed_dataframe: pd.DataFrame,
+            combined_processed_dataframe: pd.DataFrame,
             processed_station_metadata: dict,
             **kwargs
     ) -> None:
         self.update_date_range_in_station_metadata(
             processed_dataframe, processed_station_metadata)
         self.update_variables_in_station_metadata(
-            processed_dataframe, processed_station_metadata)
+            combined_processed_dataframe, processed_station_metadata)
         self.update_geometry_to_float(processed_station_metadata)
 
     def update_date_range_in_station_metadata(
@@ -440,11 +440,11 @@ class StationSet(ABC):
 
     def update_variables_in_station_metadata(
             self,
-            processed_dataframe: pd.DataFrame,
+            combined_processed_dataframe: pd.DataFrame,
             processed_station_metadata: dict,
             **kwargs
     ) -> None:
-        df_properties = list(processed_dataframe.columns)
+        df_properties = list(combined_processed_dataframe.columns)
         # Get the data dict properties that exist in processed_dataframe
         variables = {key: value for key, value in self.DATA_DICTIONARY.items(
         ) if value["column name"] in df_properties}
@@ -460,19 +460,22 @@ class StationSet(ABC):
             processed_station_metadata["features"][0]["geometry"]["coordinates"] = coords
 
     def save_processed_data(
-            self,
-            processed_dataframe: pd.DataFrame,
-            station_id: str,
-            **kwargs
-    ) -> None:
+        self, processed_dataframe: pd.DataFrame, station_id: str, **kwargs
+    ) -> tuple[list[datetime.datetime], pd.DataFrame]:
         # To check this we need to pass station_metadata which currently doesnt happen
         # if self.should_combine__dataframe_with_remote_old_dataframe(processed_dataframe, station_metadata):
-        processed_dataframe = self.combine_processed_dataframe_with_remote_old_dataframe(
-            processed_dataframe, station_id
+        combined_processed_dataframe = (
+            self.combine_processed_dataframe_with_remote_old_dataframe(
+                processed_dataframe, station_id
+            )
         )
         self.save_processed_dataframe(
-            processed_dataframe, station_id, **kwargs)
-        return [min(processed_dataframe['dt']), max(processed_dataframe['dt'])]
+            combined_processed_dataframe, station_id, **kwargs
+        )
+        return [
+            min(combined_processed_dataframe["dt"]),
+            max(combined_processed_dataframe["dt"]),
+        ], combined_processed_dataframe
 
     def combine_processed_dataframe_with_remote_old_dataframe(
             self,
@@ -514,14 +517,14 @@ class StationSet(ABC):
 
     def save_processed_dataframe(
             self,
-            processed_dataframe: pd.DataFrame,
+            combined_processed_dataframe: pd.DataFrame,
             station_id: str,
             **kwargs
     ) -> None:
         file_name = f"{self.station_name_formatter(station_id)}.csv"
         filepath = self.local_store.write(
             os.path.join(self.file_handler.PROCESSED_DATA_PATH, file_name),
-            processed_dataframe
+            combined_processed_dataframe
         )
         self.log.info(
             "[save_processed_dataframe] wrote station file to {}".format(filepath))

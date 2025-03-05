@@ -169,8 +169,9 @@ class TransformMethodsTestCase(TestCase):
             with patch.object(self.etl, "save_processed_dataframe") as save_processed_dataframe:
                 combine_processed_dataframe_with_remote_old_dataframe.return_value = df
                 save_processed_dataframe.return_value = None
-                result = self.etl.save_processed_data(df, 'STATION_IDENTIFIER')
+                result, combined_dataframe = self.etl.save_processed_data(df, 'STATION_IDENTIFIER')
                 self.assertEqual(result, ['8/1/2023', '8/8/2023'])
+                pd.testing.assert_frame_equal(combined_dataframe, df)
 
     # ToDo: Check this later
     # def test_combine_processed_dataframe_with_remote_old_dataframe(self):
