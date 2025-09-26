@@ -71,7 +71,7 @@ class S3(StoreInterface):
         super().__init__(log)
         self.bucket = bucket
         self.credentials_name = credentials_name
-        self.creds = Session(profile=credentials_name).get_credentials()
+        self.creds = Session(profile=credentials_name).get_credentials() if credentials_name else None
         self.base_folder = f"s3://{self.bucket}/"
 
     def __str__(self) -> str:
@@ -80,10 +80,13 @@ class S3(StoreInterface):
     def fs(self, refresh: bool = False) -> s3fs.S3FileSystem:
         if refresh or not hasattr(self, "_fs"):
             try:
-                self._fs = s3fs.S3FileSystem(
-                    key=self.creds.access_key,
-                    secret=self.creds.secret_key
-                )
+                if self.creds is not None:
+                    self._fs = s3fs.S3FileSystem(
+                        key=self.creds.access_key,
+                        secret=self.creds.secret_key
+                    )
+                else:
+                    self._fs = s3fs.S3FileSystem()
             except KeyError:  # KeyError indicates credentials have not been manually specified
                 self.log.error("[store.fs] s3 credentials not set")
             self.log.info("[store.fs] connected to S3 filesystem")
