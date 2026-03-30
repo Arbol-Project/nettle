@@ -24,10 +24,13 @@ from abc import ABC, abstractmethod
 import datetime
 import os
 import pandas as pd
+import requests
+from requests.adapters import HTTPAdapter
 import time
 import re
 import json
 import multiprocessing
+from urllib3.util.retry import Retry
 # manually add in imperial units (thanks USA)
 import astropy.units as astropy_units
 astropy_units.add_enabled_units(units=astropy_units.imperial)
@@ -95,6 +98,23 @@ class StationSet(ABC):
         # get_station_dict(dict_name='custom_name')
         self.STATION_DICTIONARY = self.metadata_handler.get_station_info()
         self.DATA_DICTIONARY = self.metadata_handler.get_data_dict()
+
+        self.http_session = self._build_http_session()
+
+    @staticmethod
+    def _build_http_session() -> requests.Session:
+        session = requests.Session()
+        retry = Retry(
+            total=5,
+            connect=5,  # retries on connection errors (including SSL failures)
+            read=5,  # retries on read errors (e.g. server drops connection mid-response)
+            backoff_factor=2,  # wait 1s, 2s, 4s, 8s, 16s between retries
+            status_forcelist=[429, 500, 502, 503, 504],
+        )
+        adapter = HTTPAdapter(max_retries=retry)
+        session.mount("https://", adapter)
+        session.mount("http://", adapter)
+        return session
 
     def __str__(self):
         return self.name()

@@ -42,6 +42,7 @@ dependencies = [
     "pyarrow",
     "python-dotenv",
     "python-dateutil",
+    "requests",
     "urllib3",
     "dag_cbor",
     "s3fs",
