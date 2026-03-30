@@ -5,7 +5,7 @@
 
 <h2> 👋 Introduction</h2>
 
-Hi! Thanks for taking a second to learn about Nettle. This package is a set of utilities for retrieving publicly shared climate data, converting it to a common format, and adding it to your favorite storage medium, most notably [IPFS](https://ipfs.tech/). It is effectively a specialized web scraper for climate data that converts the data to a common format and lets you share it in a distributed fashion.
+Hi! Thanks for taking a second to learn about Nettle. This package is a set of utilities for retrieving publicly shared climate data, converting it to a common format, and adding it to your favorite storage medium. It is effectively a specialized web scraper for climate data that converts the data to a common format.
 
 Nettle's utilities are combined in a StationSet abstract base class that can be adapted to retrieve data from a custom source. This abstract base class powers manager classes that can perform automated [data retrieval, transformation, and storage cycles](https://en.wikipedia.org/wiki/Extract,_transform,_load) (also known as ETLs) for a respective data source. The manager classes are also able to update, modify, and append to existing data in storage.
 
@@ -69,7 +69,6 @@ By the end of `transform()`, the user should have saved locally, in `/processed_
 You have the flexibility to load data as you see fit. However we intend for the load step to look something like:
 -  Local store - nothing happens, you've already saved the data to `processed_data/collection/dataset/...`
 -  S3 - copy the local folder to an s3 bucket of your choosing using `cp_folder_to_remote` in `nettle/io/store.py`
--  IPFS - copy the local folder to your configured IPFS environment using `cp_local_folder_to_remote` in `nettle/io/store.py`
 
 
 ![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png)

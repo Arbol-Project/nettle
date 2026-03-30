@@ -22,7 +22,7 @@ class BOMTest(StationSet):
             "500 stations"
         base_metadata['tags'] = ["temperature", "rain", "wind", "australia"]
         base_metadata['data dictionary'] = self.DATA_DICTIONARY
-        base_metadata["previous hash"] = self.store.latest_hash() if self.store.name() == 'ipfs' else None
+        base_metadata["previous hash"] = None
         base_metadata["time generated"] = str(self.today_with_time)
         return base_metadata
 
