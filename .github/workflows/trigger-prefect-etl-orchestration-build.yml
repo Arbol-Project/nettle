@@ -1,4 +1,4 @@
-name: Trigger to build prefect-etl-orchestration workflow for gridded ETL containers
+name: Trigger prefect-etl-orchestration non-gridded lock refresh
 on:
   push:
     branches: [main]
@@ -34,8 +34,12 @@ jobs:
               python -m unittest
 
       - name: Dispatch to workflows
+        # nettle is a transitive `@main` git dep of non-gridded-etl-managers, so a
+        # change here must re-lock the NON-GRIDDED image (SHA bumped via
+        # --upgrade-package nettle). This is the event update-locks routes to the
+        # non-gridded lock job — nettle has no constraints.txt of its own to publish.
         run: |
-            curl -X POST https://api.github.com/repos/${{ matrix.repo }}/dispatches \
-            -H "Accept: application/vnd.github.everest-preview+json" \
+            curl --fail -X POST https://api.github.com/repos/${{ matrix.repo }}/dispatches \
+            -H "Accept: application/vnd.github+json" \
             -H "Authorization: token ${{ secrets.DISPATCH_TOKEN }}" \
-            --data '{"event_type": "non-gridded-build", "client_payload": { "repository": "'"$GITHUB_REPOSITORY"'" }'
+            --data '{"event_type": "non-gridded-etl-managers-constraints-updated", "client_payload": { "repository": "'"$GITHUB_REPOSITORY"'" }}'
