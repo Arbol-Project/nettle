@@ -111,21 +111,12 @@ class BOM(StationSet):
             return new_start.replace(day=1)
 
     # move this to station set?
-    def _get_latest_hash(self):
-        try:
-            if self.store.name() == 'ipfs':
-                return self.store.latest_hash()
-            else:
-                return None
-        except (AttributeError, KeyError):
-            return None
-
     # move this to station set?
     def _write_base_metadata_info(self):
         self.metadata = self.BASE_METADATA
         # Should this be self.today + time?
         self.metadata["time generated"] = str(self.today_with_time)
-        self.metadata["previous hash"] = self._get_latest_hash()
+        self.metadata["previous hash"] = None
 
     def _read_single_station_df_from_csv(self, station_id):
         return pd.read_csv(os.path.join(self.file_handler.local_input_path(

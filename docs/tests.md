@@ -56,7 +56,6 @@ Name                                  Stmts   Miss  Cover
 nettle/dataframe/validators.py           19      0   100%
 nettle/errors/custom_errors.py            6      0   100%
 nettle/io/file_handler.py                24      2    92%
-nettle/io/ipfs.py                        71     48    32%
 nettle/io/store.py                      263    150    43%
 nettle/metadata/bases.py                  2      0   100%
 nettle/metadata/metadata_handler.py      53      2    96%

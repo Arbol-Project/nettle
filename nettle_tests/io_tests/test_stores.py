@@ -17,7 +17,8 @@ class StoreTestCase(TestCase):
     def setUp(self):
         with patch('nettle.utils.log_info.LogInfo') as MockClass:
             log = MockClass.return_value
-        self.s3_store = S3(bucket=s3_bucket_name, credentials_name=credentials_name, log=log)
+        with patch('nettle.io.store.Session'):
+            self.s3_store = S3(bucket=s3_bucket_name, credentials_name=credentials_name, log=log)
         self.local_store = Local(log=log)
 
     def test_name(self):

@@ -268,7 +268,7 @@ class StationSet(ABC):
         base_metadata['documentation'] = <plain text description>
         metadata['tags'] = [<list of useful tags eg temperature, USA etc>]
         metadata['data dictionary'] = self.DATA_DICTIONARY
-        metadata["previous hash"] = self.store.latest_hash() if self.store.name() == 'ipfs' else None
+        metadata["previous hash"] = None
         metadata["time generated"] = str(self.today_with_time)
         """
         pass
