@@ -1,18 +1,19 @@
 import os
 from unittest import TestCase
 from unittest.mock import patch
+
+import nettle_tests
 from nettle.io.store import Local
 from nettle_tests.fixtures.bom_test import BOMTest
 
+nettle_tests_dir = os.path.dirname(nettle_tests.__file__)
+
+
 class LoadTestCase(TestCase):
     def setUp(self):
-        with patch('nettle.utils.log_info.LogInfo') as MockClass:
+        with patch("nettle.utils.log_info.LogInfo") as MockClass:
             self.log = MockClass.return_value
-        self.etl = BOMTest(
-            log=self.log,
-            store=Local(),
-            custom_dict_path=f"{nettle_tests_dir}/fixtures/"
-        )
+        self.etl = BOMTest(log=self.log, store=Local(), custom_dict_path=f"{nettle_tests_dir}/fixtures/")
 
     # This is a system test to check a copy from local to s3
     # def test_cp_folder_to_remote_store(self):

@@ -1,0 +1,43 @@
+name: Lint and format
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+permissions:
+  contents: read
+
+# Unlike the sibling repositories, this one has no uv.lock -- dependencies are
+# managed through requirements.txt and a plain venv. So rather than
+# `uv run --only-group lint --frozen`, which needs a lock, these jobs run ruff
+# directly with `uvx` at a pinned version. That resolves nothing from the project
+# and installs none of its dependencies.
+#
+# The pin below must stay inside the `lint` dependency group range declared in
+# pyproject.toml. Bump both together.
+
+jobs:
+  lint:
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b  # v8.1.0
+        with:
+          python-version: "3.12"
+          version: "0.11.10"
+      - name: Lint
+        run: uvx ruff@0.16.1 check .
+
+  format:
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b  # v8.1.0
+        with:
+          python-version: "3.12"
+          version: "0.11.10"
+      - name: Format check
+        run: uvx ruff@0.16.1 format --check .

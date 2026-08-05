@@ -1,32 +1,32 @@
+import os
 from unittest import TestCase
 from unittest.mock import patch
-from nettle.io.store import S3
-from nettle.io.store import Local
-import s3fs
-import botocore
-import os
+
 import fsspec
 import pandas as pd
+
 import nettle_tests
+from nettle.io.store import S3, Local
 
 s3_bucket_name = "arbol-station-dev"
 credentials_name = "arbol-dev"
 nettle_tests_dir = os.path.dirname(nettle_tests.__file__)
 
+
 class StoreTestCase(TestCase):
     def setUp(self):
-        with patch('nettle.utils.log_info.LogInfo') as MockClass:
+        with patch("nettle.utils.log_info.LogInfo") as MockClass:
             log = MockClass.return_value
         self.s3_store = S3(bucket=s3_bucket_name, credentials_name=credentials_name, log=log)
         self.local_store = Local(log=log)
 
     def test_name(self):
-        self.assertEqual(self.s3_store.name(), 's3')
-        self.assertEqual(self.local_store.name(), 'local')
+        self.assertEqual(self.s3_store.name(), "s3")
+        self.assertEqual(self.local_store.name(), "local")
 
     def test_deal_with_errors(self):
         with self.assertRaises(Exception):
-            with self.local_store.deal_with_errors('/opt/test_folder'):
+            with self.local_store.deal_with_errors("/opt/test_folder"):
                 raise Exception()
 
 
@@ -135,9 +135,10 @@ class StoreTestCase(TestCase):
 #         content = self.s3_store.read(f"folder_for_test_dont_delete/KALUMBURU.csv")
 #         self.assertTrue(content is not None)
 
+
 class LocalStoreTestCase(TestCase):
     def setUp(self):
-        with patch('nettle.utils.log_info.LogInfo') as MockClass:
+        with patch("nettle.utils.log_info.LogInfo") as MockClass:
             log = MockClass.return_value
         self.local_store = Local(log=log)
 
@@ -160,38 +161,26 @@ class LocalStoreTestCase(TestCase):
         self.assertTrue(self.local_store.has_existing_file(f"{nettle_tests_dir}/fixtures/metadatas.py"))
 
     def test_has_existing_file_but_file_dont_exist(self):
-        self.assertFalse(self.local_store.has_existing_file(f"path_non_existent_d1b034"))
+        self.assertFalse(self.local_store.has_existing_file("path_non_existent_d1b034"))
 
     def test_has_existing_file_full_path(self):
-        full_filepath_exists = os.path.join(
-            self.local_store.base_folder,
-            f"{nettle_tests_dir}/fixtures/metadatas.py"
-        )
+        full_filepath_exists = os.path.join(self.local_store.base_folder, f"{nettle_tests_dir}/fixtures/metadatas.py")
         self.assertTrue(self.local_store.has_existing_file_full_path(full_filepath_exists))
 
     def test_has_existing_file_full_path_but_file_dont_exist(self):
-        full_filepath_dont_exist = os.path.join(
-            self.local_store.base_folder,
-            f"path_non_existent_d1b034"
-        )
+        full_filepath_dont_exist = os.path.join(self.local_store.base_folder, "path_non_existent_d1b034")
         self.assertFalse(self.local_store.has_existing_file_full_path(full_filepath_dont_exist))
 
     def test_write_none_json(self):
         with self.assertRaises(Exception) as cm:
             self.local_store.write(f"{nettle_tests_dir}/temp_folder_for_test/test_metadata_none.json", None)
-        self.assertEqual(
-            "[store.write] content file not identified",
-            str(cm.exception)
-        )
+        self.assertEqual("[store.write] content file not identified", str(cm.exception))
         os.remove(f"{nettle_tests_dir}/temp_folder_for_test/test_metadata_none.json")
 
     def test_write_none_csv(self):
         with self.assertRaises(Exception) as cm:
             self.local_store.write(f"{nettle_tests_dir}/temp_folder_for_test/test_metadata_none.csv", None)
-        self.assertEqual(
-            "[store.write] content file not identified",
-            str(cm.exception)
-        )
+        self.assertEqual("[store.write] content file not identified", str(cm.exception))
         os.remove(f"{nettle_tests_dir}/temp_folder_for_test/test_metadata_none.csv")
 
     def test_write_without_termination(self):
@@ -201,7 +190,9 @@ class LocalStoreTestCase(TestCase):
         # other option:
         # MagicMock(side_effect=lambda x: print(x))
         content = {"a": 1, "b": 2}
-        filepath = self.local_store.write(f"{nettle_tests_dir}/temp_folder_for_test/test_metadata_without_termination", content)
+        filepath = self.local_store.write(
+            f"{nettle_tests_dir}/temp_folder_for_test/test_metadata_without_termination", content
+        )
         self.assertEqual(filepath, f"{nettle_tests_dir}/temp_folder_for_test/test_metadata_without_termination")
         os.remove(f"{nettle_tests_dir}/temp_folder_for_test/test_metadata_without_termination")
 
@@ -212,22 +203,22 @@ class LocalStoreTestCase(TestCase):
         os.remove(f"{nettle_tests_dir}/temp_folder_for_test/test_metadata.json")
 
     def test_write_csv(self):
-        d = {'col1': [1, 2], 'col2': [3, 4]}
+        d = {"col1": [1, 2], "col2": [3, 4]}
         df = pd.DataFrame(data=d)
         filepath = self.local_store.write(f"{nettle_tests_dir}/temp_folder_for_test/KALUMBRU.csv", df)
         self.assertEqual(filepath, f"{nettle_tests_dir}/temp_folder_for_test/KALUMBRU.csv")
         os.remove(f"{nettle_tests_dir}/temp_folder_for_test/KALUMBRU.csv")
 
     def test_read_without_termination(self):
-        content_non_existent = self.local_store.read(f"metadata")
+        content_non_existent = self.local_store.read("metadata")
         self.assertFalse(content_non_existent)
 
     def test_read_json_non_existent(self):
-        content_non_existent = self.local_store.read(f"path_non_existent_d1b034.json")
+        content_non_existent = self.local_store.read("path_non_existent_d1b034.json")
         self.assertFalse(content_non_existent)
 
     def test_read_csv_non_existent(self):
-        content_non_existent = self.local_store.read(f"path_non_existent_d1b034.csv")
+        content_non_existent = self.local_store.read("path_non_existent_d1b034.csv")
         self.assertFalse(content_non_existent)
 
     def test_read_json(self):

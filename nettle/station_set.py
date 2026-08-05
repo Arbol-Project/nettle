@@ -1,63 +1,61 @@
 # StationSet.py
 #
-# Abstract base classes defining managers for Arbol's climate data sets to be inherited by classes that will implement set-specific
+# Abstract base classes defining managers for Arbol's climate data sets to be inherited by classes
+# that will implement set-specific
 # update, parse, and verification methods
 
-from .dataframe.validators import DataframeValidator as df_validator
-from .metadata.validators import station_metadata_validator
-from .metadata.validators import metadata_validator
-from .metadata.metadata_handler import MetadataHandler
-from .metadata.bases import BASE_OUTPUT_STATION_METADATA
-from .metadata.bases import BASE_OUTPUT_METADATA
-from .errors.custom_errors import DataframeInvalidException
-from .errors.custom_errors import MetadataInvalidException
-from .errors.custom_errors import FailedStationException
-from .utils.date_range_handler import DateRangeHandler
-from .utils.log_info import LogInfo
-from .io.store import Local
-from .io.store import S3
-from .io.file_handler import FileHandler
+import datetime
+import json
+import multiprocessing
+import os
+import re
+import time
+from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from copy import deepcopy
-from abc import ABC, abstractmethod
 
-import datetime
-import os
+# manually add in imperial units (thanks USA)
+import astropy.units as astropy_units
 import pandas as pd
 import requests
 from requests.adapters import HTTPAdapter
-import time
-import re
-import json
-import multiprocessing
 from urllib3.util.retry import Retry
-# manually add in imperial units (thanks USA)
-import astropy.units as astropy_units
+
+from .dataframe.validators import DataframeValidator as df_validator
+from .errors.custom_errors import DataframeInvalidException, FailedStationException, MetadataInvalidException
+from .io.file_handler import FileHandler
+from .io.store import Local
+from .metadata.bases import BASE_OUTPUT_METADATA, BASE_OUTPUT_STATION_METADATA
+from .metadata.metadata_handler import MetadataHandler
+from .metadata.validators import metadata_validator, station_metadata_validator
+from .utils.date_range_handler import DateRangeHandler
+from .utils.log_info import LogInfo
+
 astropy_units.add_enabled_units(units=astropy_units.imperial)
 
 
 class StationSet(ABC):
-    '''
+    """
     This is a base class for data parsers. It is intended to be inherited and implemented by child classes specific to
     each data source.
 
     The base class contains all the tools required to write an ETL for a station-style dataset. This is any dataset
     that can be broken up in to groups like stations, that share the same data station to station.
-    '''
+    """
 
     def __init__(
-            self,
-            log=print,
-            custom_relative_data_path=None,
-            store=None,
-            multithread_transform=None,
-            custom_dict_path=None,
-            historical_store=None,
-            data_lake_store=None,
+        self,
+        log=print,
+        custom_relative_data_path=None,
+        store=None,
+        multithread_transform=None,
+        custom_dict_path=None,
+        historical_store=None,
+        data_lake_store=None,
     ):
-        '''
+        """
         Set member variables to defaults.
-        '''
+        """
         # Establish date today just incase etl runs over midnight
         self.today_with_time = datetime.datetime.now()
         self.multithread_transform = multithread_transform
@@ -66,10 +64,7 @@ class StationSet(ABC):
         self.BASE_OUTPUT_METADATA = BASE_OUTPUT_METADATA
         self.BASE_OUTPUT_STATION_METADATA = BASE_OUTPUT_STATION_METADATA
         if custom_relative_data_path is None:
-            relative_path = os.path.join(
-                self.collection(),
-                self.dataset()
-            )
+            relative_path = os.path.join(self.collection(), self.dataset())
         else:
             relative_path = custom_relative_data_path
         self.store = store
@@ -82,17 +77,12 @@ class StationSet(ABC):
             self.data_lake_store.log = self.log
         if isinstance(self.store, Local):
             self.store.base_folder = FileHandler.PROCESSED_DATA_ROOT
-        self.local_store = Local(
-            log=self.log
-        )
+        self.local_store = Local(log=self.log)
         self.date_range_handler = DateRangeHandler()
         self.file_handler = FileHandler(relative_path=relative_path)
-        self.metadata_handler = MetadataHandler(self.file_handler,
-                                                self.default_dict_path(),
-                                                self.name(),
-                                                self.store,
-                                                self.local_store,
-                                                self.log)
+        self.metadata_handler = MetadataHandler(
+            self.file_handler, self.default_dict_path(), self.name(), self.store, self.local_store, self.log
+        )
 
         # If needed a custom name call it again using
         # get_station_dict(dict_name='custom_name')
@@ -120,9 +110,9 @@ class StationSet(ABC):
         return self.name()
 
     def __eq__(self, other):
-        '''
+        """
         All instances of this class will compare equal to each other
-        '''
+        """
         return str(self) == other
 
     def __hash__(self):
@@ -137,13 +127,13 @@ class StationSet(ABC):
         if self.custom_dict_path:
             return self.custom_dict_path
         else:
-            return os.path.join(os.getcwd(), 'non_gridded_etl_managers')
+            return os.path.join(os.getcwd(), "non_gridded_etl_managers")
 
     @classmethod
     def name(cls):
-        '''
+        """
         Return the name of instantiated class
-        '''
+        """
         return f"{cls.__name__}".lower()
 
     #####################################################################
@@ -180,12 +170,12 @@ class StationSet(ABC):
 
     @abstractmethod
     def extract(self, **kwargs) -> bool:
-        '''
-        By the end of extract(), the user should have saved locally, in /raw_data, 
-        the station-by-station information required to update their data source. 
-        Please note in this context a 'station' refers to some area with associated data. 
-        For example if your dataset was country-level population data, then your 
-        'stations' would be countries. We use the word station because in general 
+        """
+        By the end of extract(), the user should have saved locally, in /raw_data,
+        the station-by-station information required to update their data source.
+        Please note in this context a 'station' refers to some area with associated data.
+        For example if your dataset was country-level population data, then your
+        'stations' would be countries. We use the word station because in general
         we are dealing with weather data from actual measuring stations.
 
         Please note this method should be used with save_raw_dataframe(raw_dataframe, station_id)
@@ -195,18 +185,14 @@ class StationSet(ABC):
                 (bool): True if you wish to continue the ETL and False if you don't.
                 A good use case for this is if you couldn't find any new data and wanted
                 to cancel the ETL process before transform/load.
-        '''
+        """
         pass
 
     @abstractmethod
     def transform_raw_data(
-            self,
-            base_station_metadata: dict,
-            raw_dataframe: pd.DataFrame,
-            station_id: str,
-            **kwargs
+        self, base_station_metadata: dict, raw_dataframe: pd.DataFrame, station_id: str, **kwargs
     ) -> tuple[dict, pd.DataFrame]:
-        '''
+        """
         Returns, for a single station, a processed dataframe (processed_dataframe) formatted to match:
         | dt         | Var1    | Var2         |
         |------------|---------|--------------|
@@ -222,7 +208,7 @@ class StationSet(ABC):
             Parameters:
                     base_station_metadata (dict): A template to fill for station level metadata
                      generated by self.get_old_or_default_station_geo_metadata(station_id)
-                    raw_dataframe (pd.DataFrame): The raw station level dataframe as read in 
+                    raw_dataframe (pd.DataFrame): The raw station level dataframe as read in
                     from the raw_data folder
                     station_id (str): The station_id which you are currently focussing on
 
@@ -231,20 +217,15 @@ class StationSet(ABC):
                     data pulled from raw_dataframe.
                     processed_dataframe (pd.DataFrame): Your formatted and cleaned raw_data.
                     The format for this is shown above.
-        '''
+        """
         pass
 
     @abstractmethod
-    def transform_raw_metadata(
-            self,
-            raw_station_metadata: dict,
-            station_id: str,
-            **kwargs
-    ) -> dict:
-        '''
+    def transform_raw_metadata(self, raw_station_metadata: dict, station_id: str, **kwargs) -> dict:
+        """
         Read in raw_station_metadata for a single station_id and output fully processed_station_metadata.
-        Note that if you have stuck to all templates provided you may be able to simply return 
-        raw_station_metadata here, but we anticipate some fiddlier datasets requiring some level of 
+        Note that if you have stuck to all templates provided you may be able to simply return
+        raw_station_metadata here, but we anticipate some fiddlier datasets requiring some level of
         metadata gymnastics and as such the function is here to use.
 
             Parameters:
@@ -254,7 +235,7 @@ class StationSet(ABC):
             Returns:
                     processed_station_metadata (dict): Station level metadata in the required format
                     outlined by nettle/metadata/validators.py and nettle/metadata/bases.py
-        '''
+        """
         pass
 
     @abstractmethod
@@ -281,29 +262,17 @@ class StationSet(ABC):
     #####################################################################
     # EXTRACT METHODS
     #####################################################################
-    def save_raw_dataframe(
-            self,
-            raw_dataframe: pd.DataFrame,
-            station_id: str,
-            **kwargs
-    ) -> None:
+    def save_raw_dataframe(self, raw_dataframe: pd.DataFrame, station_id: str, **kwargs) -> None:
         file_name = f"{self.station_name_formatter(station_id)}.csv"
-        filepath = self.local_store.write(
-            os.path.join(self.file_handler.RAW_DATA_PATH, file_name),
-            raw_dataframe
-        )
+        filepath = self.local_store.write(os.path.join(self.file_handler.RAW_DATA_PATH, file_name), raw_dataframe)
         self.log.info("[extract] wrote station file to {}".format(filepath))
 
     @contextmanager
-    def check_station_extract_loop(
-            self,
-            station_id: str
-    ):
+    def check_station_extract_loop(self, station_id: str):
         try:
             yield
         except FailedStationException as fse:
-            self.log.error(
-                f"[extract] update Local Station failed for {station_id}: {str(fse)}")
+            self.log.error(f"[extract] update Local Station failed for {station_id}: {str(fse)}")
 
     #####################################################################
     # TRANSFORM
@@ -329,24 +298,17 @@ class StationSet(ABC):
     #####################################################################
     # TRANSFORM METHODS
     #####################################################################
-    def get_stations_to_transform(
-            self
-    ) -> list:
+    def get_stations_to_transform(self) -> list:
         stations = os.listdir(self.file_handler.RAW_DATA_PATH)
         # -4 cuts off .csv
-        return [self.station_name_formatter(station[:-4]) for station in stations if '.csv' in station]
+        return [self.station_name_formatter(station[:-4]) for station in stations if ".csv" in station]
 
     @contextmanager
-    def etl_print_runtime(
-            self,
-            station_id: str,
-            step: str = 'transform'
-    ):
+    def etl_print_runtime(self, station_id: str, step: str = "transform"):
         start_time = time.time()
         yield
         finish_time = time.time()
-        self.log.info(
-            f'[{step}] station_id={station_id} time=\033[93m{(finish_time - start_time):.2f}\033[0m')
+        self.log.info(f"[{step}] station_id={station_id} time=\033[93m{(finish_time - start_time):.2f}\033[0m")
 
     def single_station_transform(self, station_id: str, **kwargs) -> None:
         """
@@ -356,64 +318,50 @@ class StationSet(ABC):
             # read in raw dataframe from raw_data/station_id.csv
             raw_dataframe = self.read_raw_station_data(station_id, **kwargs)
             # get a station-level template for metadata
-            base_station_metadata = self.get_old_or_default_station_geo_metadata(
-                station_id)
+            base_station_metadata = self.get_old_or_default_station_geo_metadata(station_id)
             # augment station-level metadata and process raw dataframe
             raw_station_metadata, processed_dataframe = self.transform_raw_data(
-                base_station_metadata, raw_dataframe, station_id, **kwargs)
+                base_station_metadata, raw_dataframe, station_id, **kwargs
+            )
             # process raw metadata
-            processed_station_metadata = self.transform_raw_metadata(
-                raw_station_metadata, station_id, **kwargs)
+            processed_station_metadata = self.transform_raw_metadata(raw_station_metadata, station_id, **kwargs)
             # validate processed dataframe ensuring format is okay (using validators)
             self.validate_processed_dataframe(processed_dataframe)
 
             # save processed data to processed_data/station_id.csv
             # return new date range and combined processed dataframe
             new_date_range, combined_processed_dataframe = self.save_processed_data(
-                processed_dataframe, station_id, **kwargs)
+                processed_dataframe, station_id, **kwargs
+            )
             # add date range and data dict to station level metadata
             self.programmatic_station_metadata_update(
-                processed_dataframe, combined_processed_dataframe, processed_station_metadata, **kwargs)
+                processed_dataframe, combined_processed_dataframe, processed_station_metadata, **kwargs
+            )
             # validate station level metadata according to validators
-            self.validate_station_metadata(
-                processed_station_metadata, new_date_range)
+            self.validate_station_metadata(processed_station_metadata, new_date_range)
             # save processed metadata to processed_data/station_id.geojson
-            self.save_processed_station_metadata(
-                processed_station_metadata, station_id, **kwargs)
+            self.save_processed_station_metadata(processed_station_metadata, station_id, **kwargs)
 
     @contextmanager
-    def check_station_parse_loop(
-            self,
-            station_id: str
-    ):
+    def check_station_parse_loop(self, station_id: str):
         try:
             yield
         except FailedStationException as fse:
-            self.log.error(
-                f"[transform] transform single station failed for {station_id}: {str(fse)}")
+            self.log.error(f"[transform] transform single station failed for {station_id}: {str(fse)}")
 
-    def read_raw_station_data(
-            self,
-            station_id: str,
-            **kwargs
-    ) -> pd.DataFrame:
+    def read_raw_station_data(self, station_id: str, **kwargs) -> pd.DataFrame:
         df = self.local_store.read(
-            os.path.join(self.file_handler.RAW_DATA_PATH,
-                         f"{self.station_name_formatter(station_id)}.csv")
+            os.path.join(self.file_handler.RAW_DATA_PATH, f"{self.station_name_formatter(station_id)}.csv")
         )
         self.log.info("[read_raw_station_data] read raw station data")
         return df
 
-    def get_old_or_default_station_geo_metadata(
-            self,
-            station_id: str
-    ) -> dict:
+    def get_old_or_default_station_geo_metadata(self, station_id: str) -> dict:
         """
         Get the old station metadata or BASE_OUTPUT_STATION_METADATA
         :return:
         """
-        station_metadata = self.metadata_handler.get_old_station_geo_metadata(
-            station_id)
+        station_metadata = self.metadata_handler.get_old_station_geo_metadata(station_id)
         return self.BASE_OUTPUT_STATION_METADATA if station_metadata is None else station_metadata
 
     def get_old_or_default_dataset_geojson(self) -> dict:
@@ -421,53 +369,40 @@ class StationSet(ABC):
         Get the old stations.geojson or BASE_OUTPUT_STATION_METADATA
         :return:
         """
-        return self.get_old_or_default_station_geo_metadata(station_id='stations')
+        return self.get_old_or_default_station_geo_metadata(station_id="stations")
 
-    def validate_processed_dataframe(
-            self,
-            processed_dataframe: pd.DataFrame
-    ) -> None:
+    def validate_processed_dataframe(self, processed_dataframe: pd.DataFrame) -> None:
         try:
             df_validator.validate(processed_dataframe, self.DATA_DICTIONARY)
         except DataframeInvalidException as die:
-            self.log.error(
-                f"[validate_processed_dataframe] processed dataframe not validated: {str(die)}")
+            self.log.error(f"[validate_processed_dataframe] processed dataframe not validated: {str(die)}")
             raise die
 
     def programmatic_station_metadata_update(
-            self,
-            processed_dataframe: pd.DataFrame,
-            combined_processed_dataframe: pd.DataFrame,
-            processed_station_metadata: dict,
-            **kwargs
+        self,
+        processed_dataframe: pd.DataFrame,
+        combined_processed_dataframe: pd.DataFrame,
+        processed_station_metadata: dict,
+        **kwargs,
     ) -> None:
-        self.update_date_range_in_station_metadata(
-            processed_dataframe, processed_station_metadata)
-        self.update_variables_in_station_metadata(
-            combined_processed_dataframe, processed_station_metadata)
+        self.update_date_range_in_station_metadata(processed_dataframe, processed_station_metadata)
+        self.update_variables_in_station_metadata(combined_processed_dataframe, processed_station_metadata)
         self.update_geometry_to_float(processed_station_metadata)
 
     def update_date_range_in_station_metadata(
-            self,
-            processed_dataframe: pd.DataFrame,
-            processed_station_metadata: dict,
-            **kwargs
+        self, processed_dataframe: pd.DataFrame, processed_station_metadata: dict, **kwargs
     ) -> None:
         new_date_range = self.date_range_handler.get_lowest_and_highest_date_range(
             processed_dataframe, processed_station_metadata
         )
-        processed_station_metadata['features'][0]['properties']['date range'] = new_date_range
+        processed_station_metadata["features"][0]["properties"]["date range"] = new_date_range
 
     def update_variables_in_station_metadata(
-            self,
-            combined_processed_dataframe: pd.DataFrame,
-            processed_station_metadata: dict,
-            **kwargs
+        self, combined_processed_dataframe: pd.DataFrame, processed_station_metadata: dict, **kwargs
     ) -> None:
         df_properties = list(combined_processed_dataframe.columns)
         # Get the data dict properties that exist in processed_dataframe
-        variables = {key: value for key, value in self.DATA_DICTIONARY.items(
-        ) if value["column name"] in df_properties}
+        variables = {key: value for key, value in self.DATA_DICTIONARY.items() if value["column name"] in df_properties}
         processed_station_metadata["features"][0]["properties"]["variables"] = variables
 
     def update_geometry_to_float(self, processed_station_metadata) -> None:
@@ -484,70 +419,53 @@ class StationSet(ABC):
     ) -> tuple[list[datetime.datetime], pd.DataFrame]:
         # To check this we need to pass station_metadata which currently doesnt happen
         # if self.should_combine__dataframe_with_remote_old_dataframe(processed_dataframe, station_metadata):
-        combined_processed_dataframe = (
-            self.combine_processed_dataframe_with_remote_old_dataframe(
-                processed_dataframe, station_id
-            )
+        combined_processed_dataframe = self.combine_processed_dataframe_with_remote_old_dataframe(
+            processed_dataframe, station_id
         )
-        self.save_processed_dataframe(
-            combined_processed_dataframe, station_id, **kwargs
-        )
+        self.save_processed_dataframe(combined_processed_dataframe, station_id, **kwargs)
         return [
             min(combined_processed_dataframe["dt"]),
             max(combined_processed_dataframe["dt"]),
         ], combined_processed_dataframe
 
     def combine_processed_dataframe_with_remote_old_dataframe(
-            self,
-            processed_dataframe: pd.DataFrame,
-            station_id: str
+        self, processed_dataframe: pd.DataFrame, station_id: str
     ) -> pd.DataFrame:
-        self.log.info(
-            "[save_processed_data] needs combining old data to new data")
+        self.log.info("[save_processed_data] needs combining old data to new data")
         filename = f"{self.station_name_formatter(station_id)}.csv"
-        old_df = self.store.read(os.path.join(
-            self.file_handler.relative_path, filename))
+        old_df = self.store.read(os.path.join(self.file_handler.relative_path, filename))
 
         # order define the priority of which df should keep the row in case they have the same date
         # In this case processed has the priority
-        processed_dataframe['order'] = 1
+        processed_dataframe["order"] = 1
         if old_df is None:
             self.log.warn(
-                f"[save_processed_data] could not find old dataframe {station_id}.csv on {self.store.base_folder}")
+                f"[save_processed_data] could not find old dataframe {station_id}.csv on {self.store.base_folder}"
+            )
             old_df = pd.DataFrame()
 
         else:
-            old_df['order'] = 0
+            old_df["order"] = 0
             # processed_dataframe = processed_dataframe.astype({'dt': 'datetime64[ns]'})
             # old_df = old_df.astype({'dt': 'datetime64[ns]'})
 
         # combine the two
         df = pd.concat([old_df, processed_dataframe])
-        joiner_df = df[['dt', 'order']].groupby(
-            'dt', as_index=False).max('order')
-        final_df = pd.merge(joiner_df, df,
-                            how='left', on=['dt', 'order'])
-        final_df.sort_values(by='dt', ascending=True,
-                             inplace=True, ignore_index=True)
-        final_df = final_df.drop(columns=['order'])
-        final_df.drop_duplicates(subset='dt', inplace=True, ignore_index=True)
+        joiner_df = df[["dt", "order"]].groupby("dt", as_index=False).max("order")
+        final_df = pd.merge(joiner_df, df, how="left", on=["dt", "order"])
+        final_df.sort_values(by="dt", ascending=True, inplace=True, ignore_index=True)
+        final_df = final_df.drop(columns=["order"])
+        final_df.drop_duplicates(subset="dt", inplace=True, ignore_index=True)
 
         self.log.info("[save_processed_data] combined old data to new data")
         return final_df
 
-    def save_processed_dataframe(
-            self,
-            combined_processed_dataframe: pd.DataFrame,
-            station_id: str,
-            **kwargs
-    ) -> None:
+    def save_processed_dataframe(self, combined_processed_dataframe: pd.DataFrame, station_id: str, **kwargs) -> None:
         file_name = f"{self.station_name_formatter(station_id)}.csv"
         filepath = self.local_store.write(
-            os.path.join(self.file_handler.PROCESSED_DATA_PATH, file_name),
-            combined_processed_dataframe
+            os.path.join(self.file_handler.PROCESSED_DATA_PATH, file_name), combined_processed_dataframe
         )
-        self.log.info(
-            "[save_processed_dataframe] wrote station file to {}".format(filepath))
+        self.log.info("[save_processed_dataframe] wrote station file to {}".format(filepath))
 
     @staticmethod
     def units_of_measurement_exceptions() -> list:
@@ -561,90 +479,67 @@ class StationSet(ABC):
         return ["NA"]
 
     @classmethod
-    def validate_station_metadata(
-            cls,
-            station_metadata: dict,
-            new_date_range: list
-    ):
-        station_metadata['features'][0]['properties']['date range'] = new_date_range
+    def validate_station_metadata(cls, station_metadata: dict, new_date_range: list):
+        station_metadata["features"][0]["properties"]["date range"] = new_date_range
 
-        variables = deepcopy(
-            station_metadata['features'][0]['properties']['variables'])
+        variables = deepcopy(station_metadata["features"][0]["properties"]["variables"])
         unit_of_measurement_exceptions = cls.units_of_measurement_exceptions()
 
         for variable in variables.values():
             # we only need to check variables which are returnable
             # on the api itself, these have an 'api name' field
-            if 'api name' in variable:
+            if "api name" in variable:
                 # check to see if a unit has been excepted
-                if variable['unit of measurement'] not in unit_of_measurement_exceptions:
+                if variable["unit of measurement"] not in unit_of_measurement_exceptions:
                     try:
-                        astropy_units.Quantity(
-                            1, variable['unit of measurement'])
+                        astropy_units.Quantity(1, variable["unit of measurement"])
                     except ValueError as ve:
                         raise MetadataInvalidException(
-                            f"[validate_station_metadata] station metadata is invalid. Unit of Measurement must be an astropy unit: {str(ve)}"
+                            f"[validate_station_metadata] station metadata is invalid. Unit of "
+                            f"Measurement must be an astropy unit: {str(ve)}"
                         ) from None
 
         if not station_metadata_validator.validate(station_metadata):
             # raise MetadataInvalidException(f"Station metadata is invalid: {station_metadata_validator.errors}")
             raise MetadataInvalidException(
-                f"[validate_station_metadata] station metadata is invalid: {json.dumps(station_metadata_validator.errors, indent=2, default=str)}")
+                f"[validate_station_metadata] station metadata is invalid: "
+                f"{json.dumps(station_metadata_validator.errors, indent=2, default=str)}"
+            )
 
-    def save_processed_station_metadata(
-            self,
-            processed_station_metadata: dict,
-            station_id: str,
-            **kwargs
-    ) -> None:
+    def save_processed_station_metadata(self, processed_station_metadata: dict, station_id: str, **kwargs) -> None:
         station_filename = f"{self.station_name_formatter(station_id)}.geojson"
         filepath = self.local_store.write(
-            os.path.join(self.file_handler.PROCESSED_DATA_PATH,
-                         station_filename),
-            processed_station_metadata
+            os.path.join(self.file_handler.PROCESSED_DATA_PATH, station_filename), processed_station_metadata
         )
-        self.log.info(
-            "[save_processed_station_metadata] wrote station geojson metadata to {}".format(filepath))
+        self.log.info("[save_processed_station_metadata] wrote station geojson metadata to {}".format(filepath))
 
-    def save_combined_metadata_files(
-            self,
-            **kwargs
-    ) -> None:
+    def save_combined_metadata_files(self, **kwargs) -> None:
         # metadata.json
         # read in old metadata or pull the template if None
-        self.log.info(
-            "[save_combined_metadata_files] attempting to retrieve blank metadata")
+        self.log.info("[save_combined_metadata_files] attempting to retrieve blank metadata")
         base_metadata = self.get_old_or_default_metadata()
         # fill in the static metadata, this is an abstract method
-        self.log.info(
-            "[save_combined_metadata_files] populating blank metadata")
+        self.log.info("[save_combined_metadata_files] populating blank metadata")
         metadata = self.fill_in_static_metadata(base_metadata)
         # validate
-        self.log.info(
-            "[save_combined_metadata_files] validating metadata.json")
+        self.log.info("[save_combined_metadata_files] validating metadata.json")
         self.validate_metadata(metadata)
         # use local store to write out to processed_data
         filepath = self.local_store.write(
-            os.path.join(self.file_handler.PROCESSED_DATA_PATH,
-                         MetadataHandler.METADATA_FILE_NAME),
-            metadata
+            os.path.join(self.file_handler.PROCESSED_DATA_PATH, MetadataHandler.METADATA_FILE_NAME), metadata
         )
-        self.log.info(
-            "[save_combined_metadata_files] wrote metadata to {}".format(filepath))
+        self.log.info("[save_combined_metadata_files] wrote metadata to {}".format(filepath))
 
         # stations.geojson
-        self.log.info(
-            "[save_combined_metadata_files] generating combined station metadata")
+        self.log.info("[save_combined_metadata_files] generating combined station metadata")
         stations_geojson = self.generate_combined_station_metadata()
 
         # use local store to write out to processed_data
         filepath = self.local_store.write(
-            os.path.join(self.file_handler.PROCESSED_DATA_PATH,
-                         MetadataHandler.STATION_METADATA_FILE_NAME),
-            stations_geojson
+            os.path.join(self.file_handler.PROCESSED_DATA_PATH, MetadataHandler.STATION_METADATA_FILE_NAME),
+            stations_geojson,
         )
-        self.log.info(
-            "[save_combined_metadata_files] wrote stations.geojson to {}".format(filepath))
+        self.log.info("[save_combined_metadata_files] wrote stations.geojson to {}".format(filepath))
 
     def get_old_or_default_metadata(self) -> dict:
         """
@@ -657,14 +552,13 @@ class StationSet(ABC):
     # def fill_in_static_metadata()
 
     @staticmethod
-    def validate_metadata(
-            metadata: dict
-    ):
+    def validate_metadata(metadata: dict):
         # Metadata will not validate data dictionary as discussed 18 september 2023
         if not metadata_validator.validate(metadata):
             # raise MetadataInvalidException(f"Metadata is invalid: {metadata_validator.errors}")
             raise MetadataInvalidException(
-                f"[validate_metadata] metadata is invalid: {json.dumps(metadata_validator.errors, indent=2, default=str)}"
+                f"[validate_metadata] metadata is invalid: "
+                f"{json.dumps(metadata_validator.errors, indent=2, default=str)}"
             )
 
     def generate_combined_station_metadata(self) -> dict:
@@ -683,16 +577,15 @@ class StationSet(ABC):
         # Iterate through old features
         old_features = base_station_geo_metadata["features"]
         for old_feature in old_features:
-            new_metadata_file_name = old_feature["properties"]["file name"][:-4] + '.geojson'
-            new_metadata_path = os.path.join(
-                self.file_handler.PROCESSED_DATA_PATH, new_metadata_file_name)
+            new_metadata_file_name = old_feature["properties"]["file name"][:-4] + ".geojson"
+            new_metadata_path = os.path.join(self.file_handler.PROCESSED_DATA_PATH, new_metadata_file_name)
             new_feature = FileHandler.load_dict(new_metadata_path)
             # '.geojson' clause to stop the metadata template from entering the file
-            if new_feature == None and new_metadata_file_name != '.geojson':
+            if new_feature is None and new_metadata_file_name != ".geojson":
                 # take old feature
                 new_features.append(old_feature)
                 used_ids.append(new_metadata_file_name)
-            elif new_feature != None:
+            elif new_feature is not None:
                 # take new feature
                 new_features.append(new_feature["features"][0])
                 used_ids.append(new_metadata_file_name)
@@ -700,16 +593,14 @@ class StationSet(ABC):
         # iterate through new stations for any that don't exist in used_ids
         # these are first time stations that should be added to the combined file
         new_files = os.listdir(self.file_handler.PROCESSED_DATA_PATH)
-        new_files = [file for file in new_files if '.geojson' in file]
+        new_files = [file for file in new_files if ".geojson" in file]
         for file in new_files:
-            if file not in used_ids and file != 'stations.geojson':
-                new_feature = FileHandler.load_dict(os.path.join(
-                    self.file_handler.PROCESSED_DATA_PATH, file))
+            if file not in used_ids and file != "stations.geojson":
+                new_feature = FileHandler.load_dict(os.path.join(self.file_handler.PROCESSED_DATA_PATH, file))
                 new_features.append(new_feature["features"][0])
 
         # append new_features to general geojson template
-        stations_geojson = {
-            "type": "FeatureCollection", "features": new_features}
+        stations_geojson = {"type": "FeatureCollection", "features": new_features}
         return stations_geojson
 
     #####################################################################
@@ -717,13 +608,14 @@ class StationSet(ABC):
     #####################################################################
 
     def cp_folder_to_remote_store(
-            self,
-            custom_local_full_path: str = None,
-            custom_s3_relative_path: str = None
+        self, custom_local_full_path: str = None, custom_s3_relative_path: str = None
     ) -> None:
         local_path = self.file_handler.PROCESSED_DATA_PATH if custom_local_full_path is None else custom_local_full_path
-        relative_s3_path = os.path.dirname(
-            self.file_handler.relative_path) if custom_s3_relative_path is None else custom_s3_relative_path
+        relative_s3_path = (
+            os.path.dirname(self.file_handler.relative_path)
+            if custom_s3_relative_path is None
+            else custom_s3_relative_path
+        )
         return self.store.cp_folder_to_remote(local_path, relative_s3_path)
 
     #####################################################################
@@ -752,37 +644,30 @@ class StationSet(ABC):
             The same station name but in our conventional format, e.g. "AUCKLAND_AERODROME_AWS"
         """
         # Convert all non alphanumeric to _
-        formatted_station_name = re.sub(r'\W+', '_', station_name.upper())
+        formatted_station_name = re.sub(r"\W+", "_", station_name.upper())
         try:
             # trim underscores from end of string
-            while formatted_station_name[-1] == '_':
+            while formatted_station_name[-1] == "_":
                 formatted_station_name = formatted_station_name[:-1]
             # trim underscores from start of string
-            while formatted_station_name[0] == '_':
+            while formatted_station_name[0] == "_":
                 formatted_station_name = formatted_station_name[1:]
-        except IndexError as e:
-            raise Exception(
-                f"Sorry, {station_name} cannot be processed properly and is worth investigating")
+        except IndexError:
+            raise Exception(f"Sorry, {station_name} cannot be processed properly and is worth investigating")
         return formatted_station_name
 
-    def should_combine__dataframe_with_remote_old_dataframe(self,
-                                                            processed_dataframe: pd.DataFrame,
-                                                            station_metadata: dict
-                                                            ) -> bool:
-        self.log.info(
-            "[save_processed_data] check if needs to combine old data to new data")
-        dataframe_date_begin, dataframe_end_date = DateRangeHandler.get_date_range_from_dataframe(
-            processed_dataframe)
-        metadata_date_begin, metadata_date_end = DateRangeHandler.get_date_range_from_metadata(
-            station_metadata)
-        begin_date = min(
-            dataframe_date_begin, metadata_date_begin) if metadata_date_begin else dataframe_date_begin
-        end_date = max(
-            dataframe_end_date, metadata_date_end) if metadata_date_end else dataframe_end_date
+    def should_combine__dataframe_with_remote_old_dataframe(
+        self, processed_dataframe: pd.DataFrame, station_metadata: dict
+    ) -> bool:
+        self.log.info("[save_processed_data] check if needs to combine old data to new data")
+        dataframe_date_begin, dataframe_end_date = DateRangeHandler.get_date_range_from_dataframe(processed_dataframe)
+        metadata_date_begin, metadata_date_end = DateRangeHandler.get_date_range_from_metadata(station_metadata)
+        begin_date = min(dataframe_date_begin, metadata_date_begin) if metadata_date_begin else dataframe_date_begin
+        end_date = max(dataframe_end_date, metadata_date_end) if metadata_date_end else dataframe_end_date
         return dataframe_date_begin != begin_date or dataframe_end_date != end_date
 
     def get_historical_data(self, historical_filename: str) -> None | pd.DataFrame | list[None] | list[pd.DataFrame]:
-        if self.store.name() != 's3':
+        if self.store.name() != "s3":
             # ToDo
             return []
 
@@ -790,6 +675,5 @@ class StationSet(ABC):
         historical_data = self.historical_store.read(file_path)
         full_path = os.path.join(self.historical_store.base_folder, file_path)
         if historical_data is None:
-            raise FileNotFoundError(
-                f"[get_historical_data] could not find historical data {full_path}")
+            raise FileNotFoundError(f"[get_historical_data] could not find historical data {full_path}")
         return historical_data

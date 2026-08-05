@@ -1,7 +1,8 @@
-import dag_cbor
-import requests
 import io
 import json
+
+import dag_cbor
+import requests
 from multiformats import multicodec, multihash
 from requests.adapters import HTTPAdapter, Retry
 
@@ -14,10 +15,7 @@ class IPFSIO:
     def __init__(
         self,
         host: str = "http://127.0.0.1:5001",
-        default_hash: str
-        | int
-        | multicodec.Multicodec
-        | multihash.Multihash = "sha2-256",
+        default_hash: str | int | multicodec.Multicodec | multihash.Multihash = "sha2-256",
         default_base: str = "base32",
         default_timeout: int = 600,
     ):
@@ -43,14 +41,12 @@ class IPFSIO:
             params={"arg": str(cid)},
         )
         res.raise_for_status()
-        return json.loads(res.content)['Objects'][0]['Links']
+        return json.loads(res.content)["Objects"][0]["Links"]
 
     def ipfs_add(self, file):
         res = self.ipfs_session.post(
             self._host + "/api/v0/add",
-            params={
-                "hash": self._default_hash
-            },
+            params={"hash": self._default_hash},
             files={"dummy": file},
         )
         res.raise_for_status()
@@ -74,25 +70,21 @@ class IPFSIO:
         """
         files_dict = {}
         for idx, file in enumerate(files_array):
-            files_dict[f'dummy{idx}'] = file
+            files_dict[f"dummy{idx}"] = file
 
         res = self.ipfs_session.post(
             self._host + "/api/v0/add",
-            params={
-                "hash": self._default_hash,
-                "wrap-with-directory": True
-            },
+            params={"hash": self._default_hash, "wrap-with-directory": True},
             files=files_dict,
         )
         res.raise_for_status()
-        resp = res.text.replace('\n', ',')
+        resp = res.text.replace("\n", ",")
         resp_files_list = json.loads(f"[{resp.rsplit(',', 1)[0]}]")
-        directory_dict = next(
-            (x for x in resp_files_list if x['Name'] == ''), None)
+        directory_dict = next((x for x in resp_files_list if x["Name"] == ""), None)
         if directory_dict is None:
-            raise Exception('Could not create directory')
+            raise Exception("Could not create directory")
 
-        return directory_dict['Hash']
+        return directory_dict["Hash"]
 
     def ipfs_get(self, cid: str) -> dict:
         """
@@ -125,7 +117,8 @@ class IPFSIO:
         key : str
             The IPNS key string referencing a given object
         timeout : int, optional
-            Time in seconds to wait for a response from `ipfs.name.resolve` and `ipfs.dag.get` before failing. Defaults to 30.
+            Time in seconds to wait for a response from `ipfs.name.resolve` and `ipfs.dag.get`
+            before failing. Defaults to 30.
 
         Returns
         -------
@@ -179,7 +172,8 @@ class IPFSIO:
 
     def ipfs_put(self, bytes_obj: bytes, should_pin: bool = True) -> str:
         """
-        Turn a bytes object (file type object) into a DAG CBOR object compatible with IPFS and return its corresponding multihash
+        Turn a bytes object (file type object) into a DAG CBOR object compatible with IPFS and
+        return its corresponding multihash
 
         Parameters
         ----------
@@ -226,7 +220,7 @@ class IPFSIO:
 
     @staticmethod
     def csv_to_bytes(obj) -> bytes:
-        return io.BytesIO(obj.encode('utf-8')).read()
+        return io.BytesIO(obj.encode("utf-8")).read()
 
     @staticmethod
     def get_retry_session() -> requests.Session:
@@ -234,4 +228,3 @@ class IPFSIO:
         retries = Retry(connect=5, total=5, backoff_factor=4)
         session.mount("http://", HTTPAdapter(max_retries=retries))
         return session
-

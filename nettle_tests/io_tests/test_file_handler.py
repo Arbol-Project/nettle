@@ -1,14 +1,16 @@
-import os.path
 import json
+import os.path
 import tempfile
 from unittest import TestCase
+
 from nettle.io.file_handler import FileHandler
 from nettle_tests.fixtures.metadatas import kalumburu_metadata
 
+
 class FileHandlerTestCase(TestCase):
     def setUp(self):
-        self.relative_path_1 = 'test_etl_path_1_f45e0e20'
-        self.relative_path_2 = 'test_etl_path_2_f45e0e20'
+        self.relative_path_1 = "test_etl_path_1_f45e0e20"
+        self.relative_path_2 = "test_etl_path_2_f45e0e20"
         self.file_handler = FileHandler(relative_path=self.relative_path_1)
         self.full_path_2 = os.path.join(self.file_handler.RAW_DATA_ROOT, self.relative_path_2)
 
@@ -42,4 +44,3 @@ class FileHandlerTestCase(TestCase):
         loaded_dict = self.file_handler.load_dict(fp.name)
         fp.close()
         self.assertEqual(loaded_dict, kalumburu_metadata)
-

@@ -1,26 +1,22 @@
 import os
-import pandas as pd
 from unittest import TestCase
 from unittest.mock import patch
+
+import nettle_tests
 from nettle.io.store import Local
 from nettle_tests.fixtures.bom_test import BOMTest
-from nettle_tests.fixtures.metadatas import kalumburu_metadata
-import nettle_tests
 
 nettle_tests_dir = os.path.dirname(nettle_tests.__file__)
 
+
 class GeneralFunctionsTestCase(TestCase):
     def setUp(self):
-        with patch('nettle.utils.log_info.LogInfo') as MockClass:
+        with patch("nettle.utils.log_info.LogInfo") as MockClass:
             self.log = MockClass.return_value
-        self.etl = BOMTest(
-            log=self.log,
-            store=Local(),
-            custom_dict_path=f"{nettle_tests_dir}/fixtures/"
-        )
+        self.etl = BOMTest(log=self.log, store=Local(), custom_dict_path=f"{nettle_tests_dir}/fixtures/")
 
     def test_station_name_formatter(self):
-        self.assertEqual(self.etl.station_name_formatter("_auckland aerod&rome/ aws"), 'AUCKLAND_AEROD_ROME_AWS')
+        self.assertEqual(self.etl.station_name_formatter("_auckland aerod&rome/ aws"), "AUCKLAND_AEROD_ROME_AWS")
 
     # def test_should_combine__dataframe_with_remote_old_dataframe(self):
     #     d = {'dt': ["2023-06-25", "2023-07-14"], 'col2': [3, 4]}
