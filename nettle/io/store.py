@@ -1,28 +1,30 @@
 # This is necessary for referencing types that aren't fully imported yet. See https://peps.python.org/pep-0563/
 from __future__ import annotations
 
-import os
 import json
-import s3fs
-import fsspec
+import os
+from abc import ABC, abstractmethod
 from contextlib import contextmanager
+
+import fsspec
 import pandas as pd
+import s3fs
 from botocore.session import Session
-from abc import abstractmethod, ABC
+
 from nettle.utils import settings
+
 from .ipfs import IPFSIO
 
 
 class StoreInterface(ABC):
-
     def __init__(self, log=None):
         self.log = log
 
     @classmethod
     def name(cls):
-        '''
+        """
         Return the name of instantiated class
-        '''
+        """
         return f"{cls.__name__}".lower()
 
     @abstractmethod
@@ -47,27 +49,18 @@ class StoreInterface(ABC):
             yield
         except FileNotFoundError as e:
             # Deal specifcally with FileNotFoundError?
-            self.log.warn(
-                "I/O error({0}): {1}. Filepath: {2}".format(e.errno, e.strerror, filepath))
+            self.log.warn("I/O error({0}): {1}. Filepath: {2}".format(e.errno, e.strerror, filepath))
             # raise e
         except IOError as e:
-            self.log.warn(
-                "I/O error({0}): {1}. Filepath: {2}".format(e.errno, e.strerror, filepath))
+            self.log.warn("I/O error({0}): {1}. Filepath: {2}".format(e.errno, e.strerror, filepath))
             # raise e
         except Exception as e:
-            self.log.warn(
-                "Unexpected error reading or writing file. Filepath: {}".format(filepath))
+            self.log.warn("Unexpected error reading or writing file. Filepath: {}".format(filepath))
             raise e
 
 
 class S3(StoreInterface):
-
-    def __init__(
-            self,
-            log=None,
-            bucket: str = '',
-            credentials_name: str = ''
-    ):
+    def __init__(self, log=None, bucket: str = "", credentials_name: str = ""):
         super().__init__(log)
         self.bucket = bucket
         self.credentials_name = credentials_name
@@ -81,10 +74,7 @@ class S3(StoreInterface):
         if refresh or not hasattr(self, "_fs"):
             try:
                 if self.creds is not None:
-                    self._fs = s3fs.S3FileSystem(
-                        key=self.creds.access_key,
-                        secret=self.creds.secret_key
-                    )
+                    self._fs = s3fs.S3FileSystem(key=self.creds.access_key, secret=self.creds.secret_key)
                 else:
                     self._fs = s3fs.S3FileSystem()
             except KeyError:  # KeyError indicates credentials have not been manually specified
@@ -105,10 +95,7 @@ class S3(StoreInterface):
         :param filepath:
         :return:
         """
-        full_filepath = os.path.join(
-            self.base_folder,
-            filepath
-        )
+        full_filepath = os.path.join(self.base_folder, filepath)
         return self.fs().exists(full_filepath)
 
     def has_existing_file_full_path(self, filepath):
@@ -128,9 +115,9 @@ class S3(StoreInterface):
         with self.deal_with_errors(local_path):
             if not self.has_existing_file_full_path(s3_folder_path):
                 # Hack to create folder and avoid duplicated sub-folder
-                self.fs().touch(os.path.join(s3_folder_path, 'tempCVG2Qy95Jp'))
+                self.fs().touch(os.path.join(s3_folder_path, "tempCVG2Qy95Jp"))
                 self.fs().put(local_path, s3_folder_path, recursive=True)
-                self.fs().rm(os.path.join(s3_folder_path, 'tempCVG2Qy95Jp'))
+                self.fs().rm(os.path.join(s3_folder_path, "tempCVG2Qy95Jp"))
             else:
                 self.fs().put(local_path, s3_folder_path, recursive=True)
             return s3_folder_path
@@ -144,24 +131,19 @@ class S3(StoreInterface):
         :param kwargs:
         :return:
         """
-        full_filepath = os.path.join(
-            self.base_folder,
-            filepath
-        )
+        full_filepath = os.path.join(self.base_folder, filepath)
 
         with self.deal_with_errors(full_filepath):
             if isinstance(content, dict):
-                encoding = 'utf-8'
+                encoding = "utf-8"
 
-            with self.fs().open(full_filepath, 'w', encoding=encoding) as f:
+            with self.fs().open(full_filepath, "w", encoding=encoding) as f:
                 if isinstance(content, dict):
-                    json.dump(content, f, sort_keys=False,
-                              ensure_ascii=False, indent=4)
+                    json.dump(content, f, sort_keys=False, ensure_ascii=False, indent=4)
                 elif isinstance(content, pd.DataFrame):
                     content.to_csv(f, index=False)
                 else:
-                    raise Exception(
-                        "[store.write] content file not identified")
+                    raise Exception("[store.write] content file not identified")
 
         return filepath
 
@@ -169,23 +151,18 @@ class S3(StoreInterface):
         if file_type is None:
             file_type = filepath.split(".")[-1]
 
-        full_filepath = os.path.join(
-            self.base_folder,
-            filepath
-        )
+        full_filepath = os.path.join(self.base_folder, filepath)
 
         with self.deal_with_errors(full_filepath):
             if self.has_existing_file_full_path(full_filepath):
-                with self.fs().open(full_filepath, 'r') as f:
-                    if file_type == 'csv':
-                        csv = pd.read_csv(
-                            f, dtype=str, on_bad_lines='skip')
+                with self.fs().open(full_filepath, "r") as f:
+                    if file_type == "csv":
+                        csv = pd.read_csv(f, dtype=str, on_bad_lines="skip")
                         return csv
-                    elif file_type == 'json' or file_type == 'geojson':
+                    elif file_type == "json" or file_type == "geojson":
                         return json.load(f)
                     else:
-                        raise Exception(
-                            '[store.read] file type not identified')
+                        raise Exception("[store.read] file type not identified")
 
     # def latest_metadata(self, path: str, **kwargs):
     #     self.log.info(f"getting latest metadata")
@@ -207,11 +184,7 @@ class S3(StoreInterface):
 
 
 class Local(StoreInterface):
-    def __init__(
-            self,
-            log=None,
-            base_folder: str = ''
-    ):
+    def __init__(self, log=None, base_folder: str = ""):
         super().__init__(log)
         self.base_folder = base_folder
 
@@ -244,24 +217,19 @@ class Local(StoreInterface):
         return self.fs().exists(filepath)
 
     def write(self, filepath: str, content, encoding=None, **kwargs):
-        full_filepath = os.path.join(
-            self.base_folder,
-            filepath
-        )
+        full_filepath = os.path.join(self.base_folder, filepath)
 
         with self.deal_with_errors(full_filepath):
             if isinstance(content, dict):
-                encoding = 'utf-8'
-            with self.fs().open(full_filepath, 'w', encoding=encoding) as f:
+                encoding = "utf-8"
+            with self.fs().open(full_filepath, "w", encoding=encoding) as f:
                 if isinstance(content, dict):
-                    json.dump(content, f, sort_keys=False,
-                              ensure_ascii=False, indent=4)
+                    json.dump(content, f, sort_keys=False, ensure_ascii=False, indent=4)
                 elif isinstance(content, pd.DataFrame):
                     content.to_csv(f, index=False)
                 else:
                     # make this a better error
-                    raise Exception(
-                        "[store.write] content file not identified")
+                    raise Exception("[store.write] content file not identified")
 
         return filepath
 
@@ -269,22 +237,18 @@ class Local(StoreInterface):
         if file_type is None:
             file_type = filepath.split(".")[-1]
 
-        full_filepath = os.path.join(
-            self.base_folder,
-            filepath
-        )
+        full_filepath = os.path.join(self.base_folder, filepath)
 
         with self.deal_with_errors(full_filepath):
             if self.has_existing_file_full_path(full_filepath):
-                with self.fs().open(full_filepath, 'r') as f:
-                    if file_type == 'csv':
+                with self.fs().open(full_filepath, "r") as f:
+                    if file_type == "csv":
                         csv = pd.read_csv(f, dtype=str, na_values="")
                         return csv
-                    elif file_type == 'json' or file_type == 'geojson':
+                    elif file_type == "json" or file_type == "geojson":
                         return json.load(f)
                     else:
-                        raise Exception(
-                            '[store.read] file type not identified')
+                        raise Exception("[store.read] file type not identified")
 
     # def metadata_by_filesystem(self, directory, path):
     #     '''
@@ -327,14 +291,13 @@ class IPFS(StoreInterface):
     def has_existing_file(self, filepath) -> bool:
         pass
 
-    def _read_hashes_file(self, path, encoding='utf-8'):
+    def _read_hashes_file(self, path, encoding="utf-8"):
         self.dm.log.info(f"reading ipfs hash from {path}")
-        with open(path, 'r', encoding=encoding) as f:
+        with open(path, "r", encoding=encoding) as f:
             return json.load(f)
 
-    def _create_empty_hashes_file(self, path, encoding='utf-8'):
-        self.dm.log.info(
-            f"could not read hash file, creating a new one in {path}")
+    def _create_empty_hashes_file(self, path, encoding="utf-8"):
+        self.dm.log.info(f"could not read hash file, creating a new one in {path}")
         # Create Directory
         try:
             os.makedirs(self.HASHES_OUTPUT_ROOT)
@@ -343,7 +306,7 @@ class IPFS(StoreInterface):
             pass
 
         # Create File with empty dict
-        with open(path, 'w+', encoding=encoding) as f:
+        with open(path, "w+", encoding=encoding) as f:
             json.dump({}, f, sort_keys=True, ensure_ascii=False, indent=4)
         return {}
 
@@ -353,26 +316,25 @@ class IPFS(StoreInterface):
         return hashes
 
     def _append_hash_in_history_hashes(self, hashes, content):
-        return self._append_hash_in_hashes(hashes, content, f"{self.dm}_{self.dm.today_with_time.date().strftime('%Y%m%d')}")
+        return self._append_hash_in_hashes(
+            hashes, content, f"{self.dm}_{self.dm.today_with_time.date().strftime('%Y%m%d')}"
+        )
 
     def _append_hash_in_heads_hashes(self, hashes, content):
         return self._append_hash_in_hashes(hashes, content, f"{self.dm}")
 
-    def _write_in_hashes_file(self, hash_ipfs, hash_path, encoding='utf-8'):
+    def _write_in_hashes_file(self, hash_ipfs, hash_path, encoding="utf-8"):
         with open(hash_path, "w", encoding=encoding) as fp:
-            json.dump(hash_ipfs, fp, sort_keys=True,
-                      ensure_ascii=False, indent=4)
+            json.dump(hash_ipfs, fp, sort_keys=True, ensure_ascii=False, indent=4)
 
     def _write_hash_in_hashes_file(self, directory_hash):
         try:
             heads_hashes = self._read_hashes_file(self.HASH_HEADS_PATH)
         except FileNotFoundError:
             try:
-                heads_hashes = self._create_empty_hashes_file(
-                    self.HASH_HEADS_PATH)
+                heads_hashes = self._create_empty_hashes_file(self.HASH_HEADS_PATH)
             except IOError as e:
-                self.dm.log.error(
-                    "I/O error({0}): {1}".format(e.errno, e.strerror))
+                self.dm.log.error("I/O error({0}): {1}".format(e.errno, e.strerror))
                 raise e
             except Exception as e:
                 self.dm.log.error("Unexpected error writing heads hashes")
@@ -382,25 +344,21 @@ class IPFS(StoreInterface):
             history_hashes = self._read_hashes_file(self.HASH_HISTORY_PATH)
         except FileNotFoundError:
             try:
-                history_hashes = self._create_empty_hashes_file(
-                    self.HASH_HISTORY_PATH)
+                history_hashes = self._create_empty_hashes_file(self.HASH_HISTORY_PATH)
             except IOError as e:
-                self.dm.log.error(
-                    "I/O error({0}): {1}".format(e.errno, e.strerror))
+                self.dm.log.error("I/O error({0}): {1}".format(e.errno, e.strerror))
                 raise e
             except Exception as e:
                 self.dm.log.error("Unexpected error writing history hashes")
                 raise e
 
-        heads_hashes = self._append_hash_in_heads_hashes(
-            heads_hashes, directory_hash)
-        history_hashes = self._append_hash_in_history_hashes(
-            history_hashes, directory_hash)
+        heads_hashes = self._append_hash_in_heads_hashes(heads_hashes, directory_hash)
+        history_hashes = self._append_hash_in_history_hashes(history_hashes, directory_hash)
 
         self._write_in_hashes_file(heads_hashes, self.HASH_HEADS_PATH)
         self._write_in_hashes_file(history_hashes, self.HASH_HISTORY_PATH)
 
-    def write(self, file_name: str, content, encoding='utf-8', **kwargs):
+    def write(self, file_name: str, content, encoding="utf-8", **kwargs):
         # check if exist first
         # check if key exist
 
@@ -411,27 +369,28 @@ class IPFS(StoreInterface):
 
         if isinstance(content, dict):
             hash_ipfs[f"{self.dm}_{self.dm.today_with_time.date()}_{file_name}"] = self.ipfs_io.ipfs_put(
-                self.ipfs_io.json_to_bytes(content))
+                self.ipfs_io.json_to_bytes(content)
+            )
         elif isinstance(content, pd.DataFrame):
-            print('content is dataframe')
+            print("content is dataframe")
             # jason = {'csv': self.ipfs_io.csv_to_bytes(content.to_csv(index=False))}
-            jason = {'csv': content.to_csv(index=False)}
+            jason = {"csv": content.to_csv(index=False)}
 
             # converts to string
             y = json.dumps(jason)
 
             # converts to bytes
             p = bytes(y, encoding="utf-8")
-            hash_ipfs[f"{self.dm}_{self.dm.today_with_time.date()}_{file_name}"] = self.ipfs_io.ipfs_put(
-                p)
-            # hash_ipfs[f"{self.dm}_{self.dm.today_with_time.date()}_{file_name}"] = self.ipfs_io.ipfs_put(bytes(content.to_csv(index=False), encoding='utf-8'))
+            hash_ipfs[f"{self.dm}_{self.dm.today_with_time.date()}_{file_name}"] = self.ipfs_io.ipfs_put(p)
+            # hash_ipfs[f"{self.dm}_{self.dm.today_with_time.date()}_{file_name}"] = (
+            #     self.ipfs_io.ipfs_put(bytes(content.to_csv(index=False), encoding='utf-8'))
+            # )
         else:
             raise Exception("Content file not identified")
 
         # write locally in heads.json
         with open(self.HASH_HEADS_PATH, "w", encoding=encoding) as fp:
-            json.dump(hash_ipfs, fp, sort_keys=True,
-                      ensure_ascii=False, indent=4)
+            json.dump(hash_ipfs, fp, sort_keys=True, ensure_ascii=False, indent=4)
 
     def read(self, cid, **kwargs):
         file_content = self.ipfs_io.ipfs_get(cid)
@@ -444,7 +403,7 @@ class IPFS(StoreInterface):
     def list_directory_files(self, cid, **kwargs):
         return self.ipfs_io.ipfs_ls(cid)
 
-    def latest_directory_hash(self, key, encoding='utf-8'):
+    def latest_directory_hash(self, key, encoding="utf-8"):
         try:
             heads_hash = self._read_hashes_file(self.HASH_HEADS_PATH)
             return heads_hash[key]
@@ -454,18 +413,19 @@ class IPFS(StoreInterface):
             raise e
 
     def json_key(self, append_date=False):
-        '''
-        Returns the key value that can identify this set in a JSON file. If `append_date` is True, add today's date to the end
+        """
+        Returns the key value that can identify this set in a JSON file. If `append_date` is True,
+        add today's date to the end
         of the string
-        '''
+        """
         return self.json_key_formatter(self.dm.name(), append_date)
 
     def json_key_formatter(self, name, append_date=False):
         import datetime
+
         key = "{}".format(name)
         if append_date:
-            key = "{}{}{}".format(key, '_', datetime.datetime.now(
-            ).strftime(self.dm.date_handler.DATE_FORMAT_FOLDER))
+            key = "{}{}{}".format(key, "_", datetime.datetime.now().strftime(self.dm.date_handler.DATE_FORMAT_FOLDER))
 
         return key
 
@@ -477,21 +437,17 @@ class IPFS(StoreInterface):
             files = []
             for filename in os.listdir(local_path):
                 heads_file = os.path.join(local_path, filename)
-                files.append(open(heads_file, 'r'))
-            directory_hash = self.ipfs_io.ipfs_add_multiple_files_wrapping_with_directory(
-                files)
-            self.dm.log.info(
-                f"files created in IPFS with directory hash {directory_hash}")
+                files.append(open(heads_file, "r"))
+            directory_hash = self.ipfs_io.ipfs_add_multiple_files_wrapping_with_directory(files)
+            self.dm.log.info(f"files created in IPFS with directory hash {directory_hash}")
 
             # set hashes in file
             # ToDo: Check if hashes/heads.json exist, if not create it with an empty dict
             self._write_hash_in_hashes_file(directory_hash)
 
-            self.dm.log.info(
-                f"directory hash written in {self.HASH_HEADS_PATH}")
+            self.dm.log.info(f"directory hash written in {self.HASH_HEADS_PATH}")
         except IOError as e:
-            self.dm.log.error(
-                "I/O error({0}): {1}".format(e.errno, e.strerror))
+            self.dm.log.error("I/O error({0}): {1}".format(e.errno, e.strerror))
             raise e
         except Exception as e:
             self.dm.log.error("Unexpected error writing station file")

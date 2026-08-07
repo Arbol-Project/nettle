@@ -7,8 +7,7 @@ BASE_OUTPUT_METADATA = {
     "tags": [],
     "time generated": "",
     "previous hash": None,
-    "data dictionary": {
-    }
+    "data dictionary": {},
 }
 
 BASE_OUTPUT_STATION_METADATA = {
@@ -16,20 +15,15 @@ BASE_OUTPUT_STATION_METADATA = {
     "features": [
         {
             "type": "Feature",
-            "geometry": {
-                "type": "",
-                "coordinates": []
-            },
+            "geometry": {"type": "", "coordinates": []},
             "properties": {
                 "station name": "",
                 "previous hash": "",
                 "country": "",
                 "file name": "",
                 "date range": [],
-                "variables": {
-
-                }
-            }
+                "variables": {},
+            },
         }
-    ]
+    ],
 }

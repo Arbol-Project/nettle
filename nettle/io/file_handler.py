@@ -1,5 +1,6 @@
-import os
 import json
+import os
+
 from nettle.utils import settings
 
 
@@ -9,10 +10,11 @@ class FileHandler:
     PROCESSED_DATA_ROOT = settings.PROCESSED_DATA_ROOT
 
     def __init__(self, relative_path):
-        '''
-        The file folder hierarchy for a set. This should be a relative path so it can be appended to other root paths like
+        """
+        The file folder hierarchy for a set. This should be a relative path so it can be appended to
+        other root paths like
         `self.local_input_path()` and `self.output_path()`
-        '''
+        """
         self.relative_path = relative_path
         self.RAW_DATA_PATH = self.get_data_path(self.RAW_DATA_ROOT)
         self.PROCESSED_DATA_PATH = self.get_data_path(self.PROCESSED_DATA_ROOT)
@@ -29,7 +31,7 @@ class FileHandler:
     @staticmethod
     def load_dict(path):
         try:
-            with open(path, encoding='utf-8') as f:
+            with open(path, encoding="utf-8") as f:
                 return json.load(f)
         except FileNotFoundError:
             return None

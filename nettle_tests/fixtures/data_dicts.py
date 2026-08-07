@@ -5,7 +5,7 @@ bom_data_dict = {
         "unit of measurement": "YYYY-MM-DD",
         "precision": "day",
         "precision digits": "NA",
-        "NA value": "NA"
+        "NA value": "NA",
     },
     "1": {
         "column name": "TMIN",
@@ -14,7 +14,7 @@ bom_data_dict = {
         "unit of measurement": "degC",
         "precision": "0.1",
         "precision digits": "1",
-        "NA value": ""
+        "NA value": "",
     },
     "2": {
         "column name": "TMAX",
@@ -23,7 +23,7 @@ bom_data_dict = {
         "unit of measurement": "degC",
         "precision": "0.1",
         "precision digits": "1",
-        "NA value": ""
+        "NA value": "",
     },
     "3": {
         "column name": "WINDDIR",
@@ -32,7 +32,7 @@ bom_data_dict = {
         "unit of measurement": "compass_points",
         "precision": "NA",
         "precision digits": "NA",
-        "NA value": ""
+        "NA value": "",
     },
     "4": {
         "column name": "WINDSPEED",
@@ -41,7 +41,7 @@ bom_data_dict = {
         "unit of measurement": "km/h",
         "precision": "1",
         "precision digits": "1",
-        "NA value": ""
+        "NA value": "",
     },
     "5": {
         "column name": "RAIN",
@@ -50,6 +50,6 @@ bom_data_dict = {
         "unit of measurement": "mm",
         "precision": "0.1",
         "precision digits": "1",
-        "NA value": ""
-    }
+        "NA value": "",
+    },
 }

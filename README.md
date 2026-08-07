@@ -74,6 +74,21 @@ You have the flexibility to load data as you see fit. However we intend for the 
 
 ![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png)
 
+## Linting and formatting
+
+[Ruff](https://docs.astral.sh/ruff/) handles both linting and formatting. The enforced rulesets are `E` (pycodestyle errors), `F` (pyflakes) and `I` (import sorting), with a line length of 120; the configuration lives in the `[tool.ruff]` sections of `pyproject.toml`.
+
+Run the checks over the whole repository with:
+
+```bash
+uvx ruff@0.16.1 check .
+uvx ruff@0.16.1 format --check .
+```
+
+Drop `--check` to apply formatting, and add `--fix` to `ruff check` to apply the fixable lint rules. Both commands are enforced on every pull request by the `Lint and format` workflow.
+
+Unlike the sibling repositories, this one has no `uv.lock` — dependencies come from `requirements.txt` and a plain venv — so CI pins ruff inline with `uvx` rather than resolving it from a lock. That pin must stay inside the range declared by the `lint` dependency group in `pyproject.toml`; bump both together.
+
 ## Questions
 **Q: What happens if data has no natural station-by-station approach?**
 

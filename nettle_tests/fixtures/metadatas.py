@@ -5,12 +5,7 @@ bom_metadata = {
     "contact": "",
     "compression": None,
     "documentation": "Weather data from the Bureau of Meteorology in Australia covering roughly 500 stations",
-    "tags": [
-        "temperature",
-        "rain",
-        "wind",
-        "australia"
-    ],
+    "tags": ["temperature", "rain", "wind", "australia"],
     "time generated": "2023-08-30 12:24:31.882477",
     "previous hash": None,
     "data dictionary": {
@@ -20,7 +15,7 @@ bom_metadata = {
             "unit of measurement": "YYYY-MM-DD",
             "precision": "day",
             "precision digits": "NA",
-            "na value": "NA"
+            "na value": "NA",
         },
         "1": {
             "column name": "TMIN",
@@ -29,7 +24,7 @@ bom_metadata = {
             "unit of measurement": "degC",
             "precision": "0.1",
             "precision digits": "1",
-            "na value": ""
+            "na value": "",
         },
         "2": {
             "column name": "TMAX",
@@ -38,7 +33,7 @@ bom_metadata = {
             "unit of measurement": "degC",
             "precision": "0.1",
             "precision digits": "1",
-            "na value": ""
+            "na value": "",
         },
         "3": {
             "column name": "WINDDIR",
@@ -47,7 +42,7 @@ bom_metadata = {
             "unit of measurement": "compass_points",
             "precision": "NA",
             "precision digits": "NA",
-            "na value": ""
+            "na value": "",
         },
         "4": {
             "column name": "WINDSPEED",
@@ -56,7 +51,7 @@ bom_metadata = {
             "unit of measurement": "km/h",
             "precision": "1",
             "precision digits": "1",
-            "na value": ""
+            "na value": "",
         },
         "5": {
             "column name": "RAIN",
@@ -65,9 +60,9 @@ bom_metadata = {
             "unit of measurement": "mm",
             "precision": "0.1",
             "precision digits": "1",
-            "na value": ""
-        }
-    }
+            "na value": "",
+        },
+    },
 }
 
 # stations.geojson
@@ -76,22 +71,13 @@ bom_stations_metadata = {
     "features": [
         {
             "type": "Feature",
-            "geometry": {
-                "type": "Point",
-                "coordinates": [
-                    "126.3867",
-                    "-14.0900"
-                ]
-            },
+            "geometry": {"type": "Point", "coordinates": ["126.3867", "-14.0900"]},
             "properties": {
                 "station name": "TRUSCOTT",
                 "previous hash": "",
                 "country": "",
                 "file name": "TRUSCOTT.csv",
-                "date range": [
-                    "2022-08-01",
-                    "2023-08-30"
-                ],
+                "date range": ["2022-08-01", "2023-08-30"],
                 "variables": {
                     "0": {
                         "column name": "dt",
@@ -99,7 +85,7 @@ bom_stations_metadata = {
                         "unit of measurement": "YYYY-MM-DD",
                         "precision": "day",
                         "precision digits": "NA",
-                        "na value": "NA"
+                        "na value": "NA",
                     },
                     "1": {
                         "column name": "TMIN",
@@ -108,7 +94,7 @@ bom_stations_metadata = {
                         "unit of measurement": "degC",
                         "precision": "0.1",
                         "precision digits": "1",
-                        "na value": ""
+                        "na value": "",
                     },
                     "2": {
                         "column name": "TMAX",
@@ -117,7 +103,7 @@ bom_stations_metadata = {
                         "unit of measurement": "degC",
                         "precision": "0.1",
                         "precision digits": "1",
-                        "na value": ""
+                        "na value": "",
                     },
                     "3": {
                         "column name": "WINDDIR",
@@ -126,7 +112,7 @@ bom_stations_metadata = {
                         "unit of measurement": "compass_points",
                         "precision": "NA",
                         "precision digits": "NA",
-                        "na value": ""
+                        "na value": "",
                     },
                     "4": {
                         "column name": "WINDSPEED",
@@ -135,7 +121,7 @@ bom_stations_metadata = {
                         "unit of measurement": "km/h",
                         "precision": "1",
                         "precision digits": "1",
-                        "na value": ""
+                        "na value": "",
                     },
                     "5": {
                         "column name": "RAIN",
@@ -144,30 +130,21 @@ bom_stations_metadata = {
                         "unit of measurement": "mm",
                         "precision": "0.1",
                         "precision digits": "1",
-                        "na value": ""
-                    }
+                        "na value": "",
+                    },
                 },
-                "code": "IDCJDW6141"
-            }
+                "code": "IDCJDW6141",
+            },
         },
         {
             "type": "Feature",
-            "geometry": {
-                "type": "Point",
-                "coordinates": [
-                    "126.6453",
-                    "-14.2964"
-                ]
-            },
+            "geometry": {"type": "Point", "coordinates": ["126.6453", "-14.2964"]},
             "properties": {
                 "station name": "KALUMBURU",
                 "previous hash": "",
                 "country": "",
                 "file name": "KALUMBURU.csv",
-                "date range": [
-                    "2022-08-01",
-                    "2023-08-30"
-                ],
+                "date range": ["2022-08-01", "2023-08-30"],
                 "variables": {
                     "0": {
                         "column name": "dt",
@@ -175,7 +152,7 @@ bom_stations_metadata = {
                         "unit of measurement": "YYYY-MM-DD",
                         "precision": "day",
                         "precision digits": "NA",
-                        "na value": "NA"
+                        "na value": "NA",
                     },
                     "1": {
                         "column name": "TMIN",
@@ -184,7 +161,7 @@ bom_stations_metadata = {
                         "unit of measurement": "degC",
                         "precision": "0.1",
                         "precision digits": "1",
-                        "na value": ""
+                        "na value": "",
                     },
                     "2": {
                         "column name": "TMAX",
@@ -193,7 +170,7 @@ bom_stations_metadata = {
                         "unit of measurement": "degC",
                         "precision": "0.1",
                         "precision digits": "1",
-                        "na value": ""
+                        "na value": "",
                     },
                     "3": {
                         "column name": "WINDDIR",
@@ -202,7 +179,7 @@ bom_stations_metadata = {
                         "unit of measurement": "compass_points",
                         "precision": "NA",
                         "precision digits": "NA",
-                        "na value": ""
+                        "na value": "",
                     },
                     "4": {
                         "column name": "WINDSPEED",
@@ -211,7 +188,7 @@ bom_stations_metadata = {
                         "unit of measurement": "km/h",
                         "precision": "1",
                         "precision digits": "1",
-                        "na value": ""
+                        "na value": "",
                     },
                     "5": {
                         "column name": "RAIN",
@@ -220,13 +197,13 @@ bom_stations_metadata = {
                         "unit of measurement": "mm",
                         "precision": "0.1",
                         "precision digits": "1",
-                        "na value": ""
-                    }
+                        "na value": "",
+                    },
                 },
-                "code": "IDCJDW6062"
-            }
-        }
-    ]
+                "code": "IDCJDW6062",
+            },
+        },
+    ],
 }
 
 # KALUMBURU.geojson
@@ -235,22 +212,13 @@ kalumburu_metadata = {
     "features": [
         {
             "type": "Feature",
-            "geometry": {
-                "type": "Point",
-                "coordinates": [
-                    "126.6453",
-                    "-14.2964"
-                ]
-            },
+            "geometry": {"type": "Point", "coordinates": ["126.6453", "-14.2964"]},
             "properties": {
                 "station name": "KALUMBURU",
                 "previous hash": "",
                 "country": "",
                 "file name": "KALUMBURU.csv",
-                "date range": [
-                    "2023-08-26",
-                    "2023-08-29"
-                ],
+                "date range": ["2023-08-26", "2023-08-29"],
                 "variables": {
                     "0": {
                         "column name": "dt",
@@ -258,7 +226,7 @@ kalumburu_metadata = {
                         "unit of measurement": "YYYY-MM-DD",
                         "precision": "day",
                         "precision digits": "NA",
-                        "na value": "NA"
+                        "na value": "NA",
                     },
                     "1": {
                         "column name": "TMIN",
@@ -267,7 +235,7 @@ kalumburu_metadata = {
                         "unit of measurement": "degC",
                         "precision": "0.1",
                         "precision digits": "1",
-                        "na value": ""
+                        "na value": "",
                     },
                     "2": {
                         "column name": "TMAX",
@@ -276,7 +244,7 @@ kalumburu_metadata = {
                         "unit of measurement": "degC",
                         "precision": "0.1",
                         "precision digits": "1",
-                        "na value": ""
+                        "na value": "",
                     },
                     "3": {
                         "column name": "WINDDIR",
@@ -285,7 +253,7 @@ kalumburu_metadata = {
                         "unit of measurement": "compass_points",
                         "precision": "NA",
                         "precision digits": "NA",
-                        "na value": ""
+                        "na value": "",
                     },
                     "4": {
                         "column name": "WINDSPEED",
@@ -294,7 +262,7 @@ kalumburu_metadata = {
                         "unit of measurement": "km/h",
                         "precision": "1",
                         "precision digits": "1",
-                        "na value": ""
+                        "na value": "",
                     },
                     "5": {
                         "column name": "RAIN",
@@ -303,11 +271,11 @@ kalumburu_metadata = {
                         "unit of measurement": "mm",
                         "precision": "0.1",
                         "precision digits": "1",
-                        "na value": ""
-                    }
+                        "na value": "",
+                    },
                 },
-                "code": "IDCJDW6062"
-            }
+                "code": "IDCJDW6062",
+            },
         }
-    ]
+    ],
 }
